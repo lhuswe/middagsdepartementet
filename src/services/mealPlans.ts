@@ -1,7 +1,7 @@
 /**
  * Veckoplaner.
  *
- * En plan per vecka och användare, identifierad av måndagens datum. Att låsa
+ * En plan per vecka och hushåll, identifierad av måndagens datum. Att låsa
  * nyckeln till veckostart gör "den här veckan" entydigt och gör det trivialt
  * att kopiera en vecka till nästa.
  */
@@ -41,13 +41,13 @@ export const VECKODAGAR = [
 ] as const
 
 export async function hamtaVeckoplan(
-  userId: string,
+  householdId: string,
   weekStart: string,
 ): Promise<Veckoplan | null> {
   const { data, error } = await supabase
     .from('meal_plans')
     .select('*, meal_plan_items(*)')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .eq('week_start', weekStart)
     .maybeSingle()
 
@@ -60,13 +60,13 @@ export async function hamtaVeckoplan(
   return { plan, poster: poster ?? [] }
 }
 
-async function sakerstallPlan(userId: string, weekStart: string): Promise<MealPlanRow> {
-  const befintlig = await hamtaVeckoplan(userId, weekStart)
+async function sakerstallPlan(householdId: string, weekStart: string): Promise<MealPlanRow> {
+  const befintlig = await hamtaVeckoplan(householdId, weekStart)
   if (befintlig) return befintlig.plan
 
   const { data, error } = await supabase
     .from('meal_plans')
-    .insert({ user_id: userId, week_start: weekStart })
+    .insert({ household_id: householdId, week_start: weekStart })
     .select('*')
     .single()
 
@@ -79,13 +79,13 @@ async function sakerstallPlan(userId: string, weekStart: string): Promise<MealPl
  * vad "generera ny matsedel" betyder, och att smyga in dubbletter vore värre.
  */
 export async function sparaVeckoplan(
-  userId: string,
+  householdId: string,
   weekStart: string,
   meals: PlannedMeal[],
   recipeIdFor: (recipe: Recipe) => string,
   mealType: Maltidstyp = 'dinner',
 ): Promise<void> {
-  const plan = await sakerstallPlan(userId, weekStart)
+  const plan = await sakerstallPlan(householdId, weekStart)
 
   const { error: raderaFel } = await supabase
     .from('meal_plan_items')
@@ -110,14 +110,14 @@ export async function sparaVeckoplan(
 }
 
 export async function sattMaltid(
-  userId: string,
+  householdId: string,
   weekStart: string,
   servedOn: string,
   recipeId: string | null,
   servings: number,
   mealType: Maltidstyp = 'dinner',
 ): Promise<void> {
-  const plan = await sakerstallPlan(userId, weekStart)
+  const plan = await sakerstallPlan(householdId, weekStart)
 
   if (recipeId === null) {
     const { error } = await supabase
@@ -146,14 +146,14 @@ export async function sattMaltid(
 
 /** Kopierar en veckas middagar till en annan vecka. */
 export async function kopieraVecka(
-  userId: string,
+  householdId: string,
   franWeekStart: string,
   tillWeekStart: string,
 ): Promise<number> {
-  const kalla = await hamtaVeckoplan(userId, franWeekStart)
+  const kalla = await hamtaVeckoplan(householdId, franWeekStart)
   if (!kalla || kalla.poster.length === 0) return 0
 
-  const mal = await sakerstallPlan(userId, tillWeekStart)
+  const mal = await sakerstallPlan(householdId, tillWeekStart)
   const skillnad =
     (parseISO(tillWeekStart).getTime() - parseISO(franWeekStart).getTime()) / 86_400_000
 

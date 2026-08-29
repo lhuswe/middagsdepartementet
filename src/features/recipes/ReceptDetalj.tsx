@@ -8,14 +8,14 @@ import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
 import { scaleRecipe } from '../../domain/aggregate.ts'
 import { getIngredient } from '../../domain/ingredients.ts'
-import { useProfil } from '../../hooks/useProfil.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { useMarkeraLagad } from '../../hooks/useRecept.ts'
 import { hamtaRecept1 } from '../../services/recipes.ts'
 import { formatMinutes } from '../../lib/utils.ts'
 
 export function ReceptDetalj() {
   const { receptId } = useParams()
-  const { portioner } = useProfil()
+  const { portioner } = useHushall()
   const markeraLagad = useMarkeraLagad()
   const [portionerVal, setPortionerVal] = useState<number | null>(null)
 

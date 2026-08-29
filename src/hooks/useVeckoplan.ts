@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { useAuth } from '../features/auth/auth-context.ts'
+import { useHushall } from './useHushall.ts'
 import type { PlannedMeal } from '../domain/aggregate.ts'
 import type { Recipe } from '../domain/types.ts'
 import {
@@ -12,49 +12,49 @@ import {
 } from '../services/mealPlans.ts'
 
 export function useVeckoplan(weekStart: string = veckostart()) {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   return useQuery({
-    queryKey: ['veckoplan', user?.id, weekStart],
-    queryFn: () => hamtaVeckoplan(user!.id, weekStart),
-    enabled: Boolean(user?.id),
+    queryKey: ['veckoplan', hushallId, weekStart],
+    queryFn: () => hamtaVeckoplan(hushallId!, weekStart),
+    enabled: Boolean(hushallId),
   })
 }
 
 export function useSparaVecka(weekStart: string) {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
 
   return useMutation({
     mutationFn: (meals: PlannedMeal[]) =>
-      sparaVeckoplan(user!.id, weekStart, meals, (recipe: Recipe) => recipe.id),
+      sparaVeckoplan(hushallId!, weekStart, meals, (recipe: Recipe) => recipe.id),
     onSuccess: () => {
-      void klient.invalidateQueries({ queryKey: ['veckoplan', user?.id, weekStart] })
+      void klient.invalidateQueries({ queryKey: ['veckoplan', hushallId, weekStart] })
     },
   })
 }
 
 export function useSattMaltid(weekStart: string) {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
 
   return useMutation({
     mutationFn: (args: { servedOn: string; recipeId: string | null; servings: number }) =>
-      sattMaltid(user!.id, weekStart, args.servedOn, args.recipeId, args.servings),
+      sattMaltid(hushallId!, weekStart, args.servedOn, args.recipeId, args.servings),
     onSuccess: () => {
-      void klient.invalidateQueries({ queryKey: ['veckoplan', user?.id, weekStart] })
+      void klient.invalidateQueries({ queryKey: ['veckoplan', hushallId, weekStart] })
     },
   })
 }
 
 export function useKopieraVecka() {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
 
   return useMutation({
     mutationFn: (args: { fran: string; till: string }) =>
-      kopieraVecka(user!.id, args.fran, args.till),
+      kopieraVecka(hushallId!, args.fran, args.till),
     onSuccess: () => {
-      void klient.invalidateQueries({ queryKey: ['veckoplan', user?.id] })
+      void klient.invalidateQueries({ queryKey: ['veckoplan', hushallId] })
     },
   })
 }

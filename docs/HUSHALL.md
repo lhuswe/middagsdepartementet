@@ -1,93 +1,103 @@
-# Hushåll: förslag
+# Hushåll
 
-Flera personer knutna till samma inköpslista, matsedel och skafferi.
+Flera personer knutna till samma matsedel, inköpslista, skafferi och recept.
 
-Det här är ett förslag, inte implementerad funktionalitet. Det ändrar RLS
-modellen i grunden och bör beslutas innan det byggs.
+Implementerat i migrationerna `20260829100000_hushall.sql` och
+`20260829110000_hushall_funktioner.sql`. Det här dokumentet beskriver hur det
+fungerar och varför det ser ut som det gör.
 
 ---
 
-## Vad som faktiskt ska delas
+## Vad som delas och vad som är personligt
 
-Den svåra frågan är inte hur man kopplar ihop personer. Den är vilken data som
-tillhör hushållet och vilken som tillhör personen. Fel svar här ger antingen en
+Den svåra frågan var inte hur man kopplar ihop personer. Den var vilken data som
+tillhör hushållet och vilken som tillhör personen. Fel svar där ger antingen en
 app där ingenting går att dela, eller en app som läcker sådant som borde vara
 privat.
 
 | Data | Ägare | Varför |
 |---|---|---|
-| Inköpslistor | Hushåll | Hela poängen med förslaget. Två personer i butiken ska se samma lista och samma kryss. |
+| Inköpslistor | Hushåll | Två personer i butiken ska se samma lista och samma kryss. |
 | Veckomatsedel | Hushåll | Man äter tillsammans. |
 | Skafferi | Hushåll | Det finns ett kylskåp. |
 | Recept | Hushåll | En gemensam samling är enklare att förstå än två som glider isär. |
 | Produktval och favoriter | Hushåll | Knutna till butiken, inte till personen. |
-| Lagningshistorik | Hushåll | Planeraren ska undvika upprepning för hushållet, inte per person. |
+| Lagningshistorik | Hushåll | Planeraren undviker upprepning för hushållet, inte per person. |
 | Butik, budget, portioner, tillagningstid | Hushåll | Egenskaper hos hushållet. |
-| Namn och avatar | Person | Identitet. |
-| **Allergier** | **Person** | Se nedan. Det här är den viktiga raden. |
+| Namn | Person | Identitet. |
 | Ogillar | Person | Smak är personlig, även om den påverkar planeringen. |
+| **Allergier** | **Person, men gäller alla** | Se nedan. |
 
-### Allergier är personliga men får konsekvenser för alla
+De hushållsägda tabellerna behåller `user_id` som "vem lade till det här".
+Åtkomsten avgörs aldrig av den kolumnen, bara av `household_id`.
 
-Om två personer delar matsedel måste planeraren utgå från **unionen** av allas
-allergier. En rätt som är olämplig för en i hushållet är olämplig för
-matsedeln.
+### Allergier är personliga men får konsekvenser för hela hushållet
 
-Det betyder att allergier måste läsas för samtliga medlemmar när en matsedel
-genereras, vilket i sin tur betyder att medlemmar måste kunna se varandras
-allergier. Det är rimligt inom ett hushåll, men det är ett medvetet val som bör
-sägas högt, inte något som smyger in.
+Planeraren utgår från **unionen** av allas allergier. En rätt som är olämplig
+för en i hushållet är olämplig för måltiden.
 
-Samma sak gäller inte ogillar. Att en person inte tycker om broccoli behöver
-inte utesluta rätten för alla. Förslag: allergier är hårda villkor för hela
-hushållet, ogillar är en viktning som bara påverkar den som angett den.
+Det betyder att allergier läses för samtliga medlemmar när en matsedel
+genereras, vilket i sin tur betyder att medlemmar kan se varandras allergier.
+Det är rimligt inom ett hushåll, men det är ett medvetet val, och därför visas
+allergierna öppet per medlem på hushållssidan i stället för att tyst påverka
+förslagen.
+
+Ogillar fungerar inte så. Att en person inte tycker om broccoli utesluter inte
+rätten för alla - det är en viktning som bara påverkar den som angett den.
 
 ---
 
 ## Datamodell
 
-Två nya tabeller, och en kolumn på de tabeller som byter ägare.
-
 ```sql
 create table public.households (
-  id                uuid primary key default gen_random_uuid(),
-  name              text not null,
-  store_number      text references public.stores(store_number),
-  adults            integer not null default 2,
-  children          integer not null default 0,
-  servings_per_meal integer not null default 2,
-  max_cooking_minutes integer,
-  weekly_budget     numeric(10, 2),
+  id                       uuid primary key default gen_random_uuid(),
+  name                     text not null,
+  store_number             text references public.stores(store_number),
+  adults                   integer not null default 2,
+  children                 integer not null default 0,
+  servings_per_meal        integer not null default 2,
+  max_cooking_minutes      integer,
+  weekly_budget            numeric(10, 2),
+  is_member                boolean not null default false,
   assume_staples_available boolean not null default true,
-  repetition_avoidance text not null default 'medium',
-  created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
+  repetition_avoidance     text not null default 'medium',
+  created_at               timestamptz not null default now(),
+  updated_at               timestamptz not null default now()
 );
 
 create table public.household_members (
   household_id uuid not null references public.households(id) on delete cascade,
-  user_id      uuid not null references auth.users(id) on delete cascade,
+  user_id      uuid not null unique references auth.users(id) on delete cascade,
   role         text not null default 'member' check (role in ('owner', 'member')),
   joined_at    timestamptz not null default now(),
   primary key (household_id, user_id)
 );
 ```
 
-`profiles` behåller `display_name`, `allergies`, `dislikes` och `is_admin`.
-Hushållsinställningarna flyttar till `households`.
+`user_id` är **unik**: en person tillhör högst ett hushåll. Det är en förenkling
+med verkliga följder - man kan inte vara med i både sitt eget och sina
+föräldrars hushåll - men det gör hela resten av modellen enklare. Frågan "vilket
+hushålls skafferi ska dras av?" har alltid ett svar.
 
-Tabeller som byter från `user_id` till `household_id`: `recipes`, `meal_plans`,
-`pantry_items`, `shopping_lists`, `ingredient_product_mappings`,
-`favorite_products`, `favorite_recipes`, `cooking_history`.
+`profiles` behåller `display_name`, `allergies`, `dislikes`, `diets`, `is_admin`
+och `onboarded_at`. Hushållsinställningarna finns bara i `households`.
 
-Behåll gärna `user_id` som "vem lade till det här", men gör inte åtkomsten
-beroende av det.
+Tabeller som bytte ägare från person till hushåll: `recipes`,
+`recipe_ingredients` (via receptet), `meal_plans`, `pantry_items`,
+`shopping_lists`, `ingredient_product_mappings`, `favorite_products`,
+`favorite_recipes`, `cooking_history`.
+
+Unikhetsvillkor flyttade med. `pantry_items` var unik per
+`(user_id, ingredient_id)` och är nu unik per `(household_id, ingredient_id)` -
+annars hade två medlemmar kunnat lagerföra samma vara två gånger i samma
+skafferi.
 
 ---
 
-## RLS, och fällan som väntar
+## RLS, och fällan
 
-Policyerna går från
+Policyerna gick från
 
 ```sql
 using ((select auth.uid()) = user_id)
@@ -96,10 +106,10 @@ using ((select auth.uid()) = user_id)
 till
 
 ```sql
-using (household_id in (select public.mina_hushall()))
+using (household_id = (select public.mitt_hushall()))
 ```
 
-### Fällan
+### Rekursionsfällan
 
 Den naiva varianten på `household_members` orsakar oändlig rekursion:
 
@@ -116,8 +126,8 @@ avbryter med ett rekursionsfel som pekar åt fel håll.
 Lösningen är en `security definer`-funktion som går förbi RLS:
 
 ```sql
-create or replace function public.mina_hushall()
-returns setof uuid
+create or replace function public.mitt_hushall()
+returns uuid
 language sql
 security definer
 stable
@@ -126,30 +136,39 @@ as $$
   select household_id
   from public.household_members
   where user_id = (select auth.uid())
+  limit 1
 $$;
 
-revoke execute on function public.mina_hushall() from public, anon;
-grant execute on function public.mina_hushall() to authenticated;
+revoke execute on function public.mitt_hushall() from public, anon;
+grant execute on function public.mitt_hushall() to authenticated;
 ```
 
 Den är säker trots `security definer`, eftersom den bara returnerar anroparens
-egna medlemskap. Den kan inte förmås att returnera någon annans.
+eget medlemskap. Den kan inte förmås att returnera någon annans - det finns
+ingen parameter att manipulera.
 
-`(select public.mina_hushall())` i policyn gör att den utvärderas en gång per
+`(select public.mitt_hushall())` i policyn gör att den utvärderas en gång per
 fråga i stället för en gång per rad. Skillnaden märks direkt på en inköpslista
 med femtio poster.
 
 ### Kolumnskyddet gäller fortfarande
 
-Samma lärdom som från privilegieeskaleringen i `profiles`: RLS avgör vilka
-rader man får röra, inte vilka kolumner. `household_members.role` måste skyddas
-med kolumnrättigheter, annars kan en medlem göra sig själv till ägare.
+Samma lärdom som från privilegieeskaleringen i `profiles`: **RLS avgör vilka
+rader man får röra, inte vilka kolumner.** Utan skydd hade en medlem kunnat
+göra sig själv till ägare, eller flytta sig själv till ett annat hushåll:
+
+```sql
+revoke insert, update on public.household_members from authenticated;
+```
+
+Medlemskap ändras aldrig direkt från klienten. Det sker bara genom
+`skapa_hushall()` och `los_in_inbjudan()`, som båda är `security definer` och
+sätter rollen själva. Att lämna hushållet är den enda `delete` som är tillåten,
+och bara på den egna raden.
 
 ---
 
 ## Att bjuda in någon
-
-Enklast som räcker: en inbjudan med kod och utgångstid.
 
 ```sql
 create table public.household_invites (
@@ -162,87 +181,80 @@ create table public.household_invites (
 );
 ```
 
-Inlösen sker i en `security definer`-funktion, inte genom att klienten skriver i
-`household_members` direkt. Funktionen kontrollerar att koden finns, inte är
-utgången och inte redan använd, och lägger till medlemmen i en transaktion.
+Inlösen sker i `los_in_inbjudan(kod)`, inte genom att klienten skriver i
+`household_members`. Funktionen kontrollerar i en transaktion att koden finns,
+inte är utgången och inte redan använd, och att den som löser in inte redan
+tillhör ett hushåll.
 
-Tre saker att inte missa:
+Tre saker som inte fick missas:
 
-- Koden ska vara tillräckligt lång för att inte gå att gissa. Nio slumpbytes ger
-  72 bitar.
-- En inbjudan får bara skapas av någon som redan är medlem.
-- Utgångstiden ska kontrolleras i databasen, inte i gränssnittet.
+- Koden är nio slumpbytes, alltså 72 bitar. Den går inte att gissa.
+- En inbjudan kan bara skapas av någon som redan är medlem.
+- Utgångstiden kontrolleras i databasen, aldrig i gränssnittet.
 
----
-
-## Migrering av befintlig data
-
-Alla nuvarande användare får ett hushåll med sig själva som ägare:
-
-```sql
-insert into public.households (id, name, store_number, adults, children, ...)
-select gen_random_uuid(), coalesce(display_name, 'Hushållet'), store_number, adults, children, ...
-from public.profiles;
-```
-
-Sedan kopplas medlemskap och data över. Ordningen spelar roll: lägg till
-`household_id` som nullbar kolumn, fyll den, gör den `not null`, och ta bort
-`user_id`-beroendet i policyerna sist. Då finns inget läge där data är
-oåtkomlig.
+Inbjudningar kan återkallas så länge de är oanvända.
 
 ---
 
-## Vad det kostar
+## Databasfunktioner
 
-Detta är inte ett litet ingrepp.
-
-| Del | Omfattning |
+| Funktion | Vad den gör |
 |---|---|
-| Migrationer | Två nya tabeller, kolumn på åtta tabeller, samtliga policyer skrivs om |
-| Datalagret | Varje fråga i `src/services/` byter från `user_id` till `household_id` |
-| Planeraren | Måste läsa allergier för alla medlemmar |
-| Gränssnitt | Hushållsvy, inbjudningsflöde, medlemslista, lämna hushåll |
-| Tester | RLS-isolering måste verifieras om, nu med två hushåll och två medlemmar |
+| `mitt_hushall()` | Anroparens hushålls-id. Grunden för samtliga policyer. |
+| `skapa_hushall(namn)` | Skapar hushållet och lägger till anroparen som ägare. Vägrar om personen redan har ett. |
+| `los_in_inbjudan(kod)` | Validerar och löser in en kod, i en transaktion. |
+| `hushallets_allergier()` | Unionen av medlemmarnas allergier. Används av planeraren. |
 
-Uppskattningsvis en dags arbete för grunden, plus tid för att verifiera
-isoleringen ordentligt. Det sista steget är det som inte får slarvas med.
-
----
-
-## Ett enklare alternativ, om syftet bara är inköpslistan
-
-Om behovet i praktiken är "min sambo ska kunna kryssa i listan medan jag handlar"
-finns en betydligt mindre lösning: **delning per lista.**
-
-```sql
-create table public.shopping_list_shares (
-  shopping_list_id uuid not null references public.shopping_lists(id) on delete cascade,
-  user_id          uuid not null references auth.users(id) on delete cascade,
-  primary key (shopping_list_id, user_id)
-);
-```
-
-Policyn på `shopping_lists` blir `user_id = auth.uid() or id in (select ... from
-shares where user_id = auth.uid())`. Ingenting annat ändras.
-
-Det ger delad inköpslista utan att röra recept, skafferi, matsedel eller
-allergier. Ungefär en timmes arbete i stället för en dag.
-
-Nackdelen är att det inte skalar till "vi planerar mat tillsammans". Skafferiet
-förblir personligt, vilket betyder att avdraget blir fel för den som inte äger
-det.
+Samtliga är `security definer` med `set search_path = ''`, och execute är
+återkallat från `public` och `anon`.
 
 ---
 
-## Rekommendation
+## Att lämna hushållet
 
-Börja med att svara på vad som faktiskt efterfrågas:
+Data följer **inte** med. Recept, matsedel, skafferi och inköpslistor tillhör
+hushållet och blir kvar hos de andra medlemmarna. Lämnar den sista medlemmen
+blir raderna oåtkomliga - de finns kvar i databasen men ingen policy släpper
+igenom dem.
 
-1. **Bara delad inköpslista i butiken.** Ta det enkla alternativet. Det löser
-   problemet i dag och stänger inga dörrar.
-2. **Gemensam matplanering för ett hushåll.** Ta hela modellen. Halvvägs är
-   sämst: ett delat skafferi utan delad matsedel ger fel avdrag, och en delad
-   matsedel utan delade allergier är direkt olämpligt.
+Det är ett medvetet val: alternativet hade varit att kopiera data, vilket ger
+två divergerande skafferier som båda påstår sig vara sanningen. Gränssnittet
+säger rakt ut vad som händer innan man bekräftar.
 
-Frågan att ställa sig är om skafferiet och recepten ska vara gemensamma. Är
-svaret ja är det hela modellen som gäller.
+Att **byta** hushåll kräver därför två steg: lämna, sedan lösa in koden.
+`los_in_inbjudan()` vägrar den som redan tillhör ett hushåll. En tidigare version
+tog tyst bort det gamla medlemskapet, vilket innebar att en inklistrad kod kunde
+kosta någon deras recept och skafferi utan att något sagts. Rättat i
+`20260829120000_inbjudan_flyttar_inte_tyst.sql`.
+
+---
+
+## Verifierad isolering
+
+Isoleringen testades med två hushåll och en medlem som inte är ägare. Sett från
+medlem A2 i hushåll A:
+
+| Fråga | Eget hushåll | Annat hushåll |
+|---|---|---|
+| `households` | 1 | 0 |
+| `household_members` | 2 | 0 |
+| `profiles` | 2 | 0 |
+| `recipes` | 1 | 0 |
+| `recipe_ingredients` | 1 | 0 |
+| `pantry_items` | 1 | 0 |
+
+`hushallets_allergier()` returnerade unionen över båda medlemmarna, inte bara
+den inloggades egna.
+
+Försök att ändra sin egen roll gav `permission denied for table
+household_members`.
+
+---
+
+## Vad som medvetet inte byggdes
+
+- **Flera hushåll per person.** `user_id` är unik. Se motiveringen ovan.
+- **Roller med olika rättigheter.** `owner` och `member` finns i schemat, men
+  ägaren har i praktiken inga extra befogenheter utöver att ha skapat hushållet.
+  Ett hushåll är inte en organisation.
+- **Att kasta ut någon.** Man lämnar själv. Behovet får uppstå först.

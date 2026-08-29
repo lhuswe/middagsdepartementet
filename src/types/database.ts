@@ -61,30 +61,63 @@ export type ProductRow = {
   synced_at: string
 }
 
+/**
+ * Profilen är personlig: identitet, allergier och smak.
+ *
+ * Hushållsinställningarna (butik, budget, portioner) bor i HouseholdRow.
+ * Allergier stannar hos personen, men matsedeln måste utgå från unionen av
+ * hushållets alla allergier. Se hushallets_allergier i databasen.
+ */
 export type ProfileRow = {
   id: string
   display_name: string | null
-  store_number: string | null
-  adults: number
-  children: number
-  servings_per_meal: number
-  max_cooking_minutes: number | null
-  weekly_budget: number | null
   allergies: string[]
   dislikes: string[]
   diets: string[]
-  is_member: boolean
-  assume_staples_available: boolean
-  repetition_avoidance: 'low' | 'medium' | 'high'
   is_admin: boolean
   onboarded_at: string | null
   created_at: string
   updated_at: string
 }
 
+export type HouseholdRow = {
+  id: string
+  name: string
+  store_number: string | null
+  adults: number
+  children: number
+  servings_per_meal: number
+  max_cooking_minutes: number | null
+  weekly_budget: number | null
+  is_member: boolean
+  assume_staples_available: boolean
+  repetition_avoidance: 'low' | 'medium' | 'high'
+  created_at: string
+  updated_at: string
+}
+
+export type HouseholdMemberRow = {
+  household_id: string
+  user_id: string
+  role: 'owner' | 'member'
+  joined_at: string
+}
+
+export type HouseholdInviteRow = {
+  code: string
+  household_id: string
+  created_by: string
+  expires_at: string
+  used_by: string | null
+  used_at: string | null
+  created_at: string
+}
+
 export type RecipeRow = {
   id: string
-  user_id: string
+  household_id: string
+  /** Vem som lade till receptet. Ägandet ligger på hushållet. */
+  user_id: string | null
   name: string
   description: string
   servings: number
@@ -113,7 +146,8 @@ export type RecipeIngredientRow = {
 
 export type MealPlanRow = {
   id: string
-  user_id: string
+  household_id: string
+  user_id: string | null
   week_start: string
   name: string | null
   created_at: string
@@ -132,7 +166,8 @@ export type MealPlanItemRow = {
 
 export type PantryItemRow = {
   id: string
-  user_id: string
+  household_id: string
+  user_id: string | null
   ingredient_id: string
   amount: number
   min_stock: number | null
@@ -142,7 +177,8 @@ export type PantryItemRow = {
 
 export type ShoppingListRow = {
   id: string
-  user_id: string
+  household_id: string
+  user_id: string | null
   meal_plan_id: string | null
   name: string
   store_number: string
@@ -179,7 +215,8 @@ export type ShoppingListItemRow = {
 
 export type IngredientProductMappingRow = {
   id: string
-  user_id: string
+  household_id: string
+  user_id: string | null
   ingredient_id: string
   store_number: string
   gtin: string
@@ -190,7 +227,8 @@ export type FavoriteProductRow = IngredientProductMappingRow
 
 export type CookingHistoryRow = {
   id: string
-  user_id: string
+  household_id: string
+  user_id: string | null
   recipe_id: string
   cooked_on: string
   servings: number | null
@@ -209,7 +247,8 @@ export type PriceHistoryRow = {
 }
 
 export type FavoriteRecipeRow = {
-  user_id: string
+  household_id: string
+  user_id: string | null
   recipe_id: string
   created_at: string
 }
@@ -272,14 +311,25 @@ export type Database = {
         InsertOf<PriceHistoryRow, 'gtin' | 'store_number' | 'price'>
       >
       sync_runs: Table<SyncRunRow, InsertOf<SyncRunRow, 'store_number'>>
+      households: Table<HouseholdRow, InsertOf<HouseholdRow, 'name'>>
+      household_members: Table<
+        HouseholdMemberRow,
+        InsertOf<HouseholdMemberRow, 'household_id' | 'user_id'>,
+        [Relation<'household_id', 'households', 'id'>]
+      >
+      household_invites: Table<
+        HouseholdInviteRow,
+        InsertOf<HouseholdInviteRow, 'household_id' | 'created_by'>,
+        [Relation<'household_id', 'households', 'id'>]
+      >
       profiles: Table<ProfileRow, InsertOf<ProfileRow, 'id'>>
-      recipes: Table<RecipeRow, InsertOf<RecipeRow, 'user_id' | 'name' | 'servings'>>
+      recipes: Table<RecipeRow, InsertOf<RecipeRow, 'household_id' | 'name' | 'servings'>>
       recipe_ingredients: Table<
         RecipeIngredientRow,
         InsertOf<RecipeIngredientRow, 'recipe_id' | 'ingredient_id' | 'quantity' | 'unit'>,
         [Relation<'recipe_id', 'recipes', 'id'>, Relation<'ingredient_id', 'ingredients', 'id'>]
       >
-      meal_plans: Table<MealPlanRow, InsertOf<MealPlanRow, 'user_id' | 'week_start'>>
+      meal_plans: Table<MealPlanRow, InsertOf<MealPlanRow, 'household_id' | 'week_start'>>
       meal_plan_items: Table<
         MealPlanItemRow,
         InsertOf<MealPlanItemRow, 'meal_plan_id' | 'served_on' | 'servings'>,
@@ -287,11 +337,11 @@ export type Database = {
       >
       pantry_items: Table<
         PantryItemRow,
-        InsertOf<PantryItemRow, 'user_id' | 'ingredient_id' | 'amount'>
+        InsertOf<PantryItemRow, 'household_id' | 'ingredient_id' | 'amount'>
       >
       shopping_lists: Table<
         ShoppingListRow,
-        InsertOf<ShoppingListRow, 'user_id' | 'store_number'>
+        InsertOf<ShoppingListRow, 'household_id' | 'store_number'>
       >
       shopping_list_items: Table<
         ShoppingListItemRow,
@@ -300,24 +350,29 @@ export type Database = {
       >
       ingredient_product_mappings: Table<
         IngredientProductMappingRow,
-        InsertOf<IngredientProductMappingRow, 'user_id' | 'ingredient_id' | 'store_number' | 'gtin'>
+        InsertOf<IngredientProductMappingRow, 'household_id' | 'ingredient_id' | 'store_number' | 'gtin'>
       >
       favorite_products: Table<
         FavoriteProductRow,
-        InsertOf<FavoriteProductRow, 'user_id' | 'ingredient_id' | 'store_number' | 'gtin'>
+        InsertOf<FavoriteProductRow, 'household_id' | 'ingredient_id' | 'store_number' | 'gtin'>
       >
       favorite_recipes: Table<
         FavoriteRecipeRow,
-        InsertOf<FavoriteRecipeRow, 'user_id' | 'recipe_id'>
+        InsertOf<FavoriteRecipeRow, 'household_id' | 'recipe_id'>
       >
-      cooking_history: Table<CookingHistoryRow, InsertOf<CookingHistoryRow, 'user_id' | 'recipe_id'>>
+      cooking_history: Table<CookingHistoryRow, InsertOf<CookingHistoryRow, 'household_id' | 'recipe_id'>>
     }
     // `{ [_ in never]: never }` är Supabase egen idiom för ett tomt schemablock.
     // Skriv INTE `Record<string, ...>` här: en indexsignatur gör att varje
     // tabellnamn också tolkas som en vy, vyer saknar `Insert`, och då kollapsar
     // typen för varje insert till `never`. Symptomet ser ut som ett helt annat fel.
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      mitt_hushall: { Args: Record<string, never>; Returns: string | null }
+      skapa_hushall: { Args: { namn?: string }; Returns: string }
+      los_in_inbjudan: { Args: { kod: string }; Returns: string }
+      hushallets_allergier: { Args: Record<string, never>; Returns: string[] }
+    }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
   }

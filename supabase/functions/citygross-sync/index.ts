@@ -229,8 +229,8 @@ interface ButiksResultat {
  * Avgör vilka butiker som ska hämtas.
  *
  * En administratör som trycker på knappen anger sin butik. Cron anger ingen,
- * och då hämtas de butiker som faktiskt förekommer i någons profil. Tidigare
- * hämtades alltid en fast butik, vilket innebar att en användare i en annan
+ * och då hämtas de butiker som faktiskt är valda av något hushåll. Tidigare
+ * hämtades alltid en fast butik, vilket innebar att ett hushåll i en annan
  * stad fick en inköpslista helt utan priser utan att någon märkte det.
  */
 async function valjButiker(
@@ -243,7 +243,7 @@ async function valjButiker(
   if (konfigurerad && GILTIGT_BUTIKSNUMMER.test(konfigurerad)) return [konfigurerad]
 
   const { data } = await admin
-    .from('profiles')
+    .from('households')
     .select('store_number')
     .not('store_number', 'is', null)
 
@@ -301,7 +301,7 @@ Deno.serve(async (request) => {
     return json(
       {
         error:
-          'Ingen butik att hämta. Ange storeNumber, sätt CITYGROSS_STORE_NUMBER, eller välj butik i en profil.',
+          'Ingen butik att hämta. Ange storeNumber, sätt CITYGROSS_STORE_NUMBER, eller välj butik i ett hushåll.',
       },
       cors,
       400,

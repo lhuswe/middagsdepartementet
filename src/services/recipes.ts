@@ -35,11 +35,11 @@ function toRecipe(row: RadMedIngredienser): Recipe {
   }
 }
 
-export async function hamtaRecept(userId: string): Promise<Recipe[]> {
+export async function hamtaRecept(householdId: string): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
     .select('*, recipe_ingredients(*)')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .order('name')
 
   if (error) throw error
@@ -63,11 +63,14 @@ export async function hamtaRecept1(id: string): Promise<Recipe | null> {
  * Körs en gång, vid onboarding. Är samlingen redan fylld händer ingenting -
  * funktionen ska gå att anropa om utan att skapa dubbletter.
  */
-export async function importeraStartrecept(userId: string): Promise<number> {
+export async function importeraStartrecept(
+  householdId: string,
+  userId: string,
+): Promise<number> {
   const { count } = await supabase
     .from('recipes')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
 
   if ((count ?? 0) > 0) return 0
 
@@ -75,6 +78,7 @@ export async function importeraStartrecept(userId: string): Promise<number> {
     .from('recipes')
     .insert(
       SEED_RECIPES.map((recipe) => ({
+        household_id: householdId,
         user_id: userId,
         name: recipe.name,
         description: recipe.description,
@@ -114,13 +118,14 @@ export async function importeraStartrecept(userId: string): Promise<number> {
 }
 
 export async function markeraLagad(
+  householdId: string,
   userId: string,
   recipeId: string,
   servings: number,
 ): Promise<void> {
   const { error } = await supabase
     .from('cooking_history')
-    .insert({ user_id: userId, recipe_id: recipeId, servings })
+    .insert({ household_id: householdId, user_id: userId, recipe_id: recipeId, servings })
   if (error) throw error
 }
 
@@ -131,11 +136,11 @@ export interface Lagningshistorik {
 }
 
 /** Vad som lagats den senaste tiden, för planerarens repetitionsspärr. */
-export async function hamtaLagningshistorik(userId: string): Promise<Lagningshistorik[]> {
+export async function hamtaLagningshistorik(householdId: string): Promise<Lagningshistorik[]> {
   const { data, error } = await supabase
     .from('cooking_history')
     .select('recipe_id, cooked_on')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .order('cooked_on', { ascending: false })
     .limit(200)
 
@@ -158,6 +163,7 @@ export async function hamtaLagningshistorik(userId: string): Promise<Lagningshis
 }
 
 export async function vaxlaFavorit(
+  householdId: string,
   userId: string,
   recipeId: string,
   favorit: boolean,
@@ -165,23 +171,23 @@ export async function vaxlaFavorit(
   if (favorit) {
     const { error } = await supabase
       .from('favorite_recipes')
-      .insert({ user_id: userId, recipe_id: recipeId })
+      .insert({ household_id: householdId, user_id: userId, recipe_id: recipeId })
     if (error && error.code !== '23505') throw error
   } else {
     const { error } = await supabase
       .from('favorite_recipes')
       .delete()
-      .eq('user_id', userId)
+      .eq('household_id', householdId)
       .eq('recipe_id', recipeId)
     if (error) throw error
   }
 }
 
-export async function hamtaFavoriter(userId: string): Promise<Set<string>> {
+export async function hamtaFavoriter(householdId: string): Promise<Set<string>> {
   const { data, error } = await supabase
     .from('favorite_recipes')
     .select('recipe_id')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
 
   if (error) throw error
   return new Set((data ?? []).map((rad) => rad.recipe_id))

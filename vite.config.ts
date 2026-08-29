@@ -12,7 +12,7 @@ const BASE = '/middagsdepartementet/'
 
 export default defineConfig(({ command, isPreview }) => ({
   // Dev-servern kör från roten så att basadressen aldrig är i vägen lokalt.
-  // Förhandsgranskningen måste däremot använda samma bas som bygget — annars
+  // Förhandsgranskningen måste däremot använda samma bas som bygget - annars
   // hittar den inte sina egna assets, och `npm run preview` blir värdelös som
   // kontroll av det som faktiskt publiceras. `preview` kör med command
   // 'serve', så det räcker inte att titta på command.

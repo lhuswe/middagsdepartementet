@@ -23,6 +23,7 @@ Skillnaden mot en vanlig matsedelsapp är sista steget. En lista som säger
 | **Skafferi** | Det som finns hemma dras av innan produkterna väljs. |
 | **Veckans fynd** | Kampanjvaror i din butik, och möjligheten att bygga matsedeln runt dem. |
 | **Budget** | Veckobudget med planerat och kvarvarande. |
+| **Hushåll** | Flera personer delar matsedel, inköpslista, skafferi och recept. Kryssen i butiken syns för alla. Inbjudan sker med en engångskod. |
 
 ## Det appen inte gör
 
@@ -97,7 +98,16 @@ update public.profiles set is_admin = true where id = (
 );
 ```
 
-### 7. Kör igång
+### 7. Skapa ditt hushåll
+
+Första inloggningen landar på ett val: skapa ett eget hushåll, eller lös in en
+inbjudningskod från någon som redan har ett. Butik, portioner och budget hör till
+hushållet, inte till dig - byter ni butik gäller det för alla.
+
+Bjud in fler under **Hushåll**. Koden gäller i sju dagar och kan bara användas
+en gång.
+
+### 8. Kör igång
 
 ```bash
 npm run dev
@@ -107,7 +117,7 @@ Logga in, gå igenom de sex onboardingstegen, och **kör en sortimentshämtning*
 från *Diagnostik och tillsyn*. Utan den är produktkatalogen tom och
 inköpslistan kan inte prissättas. Första körningen tar några minuter.
 
-### 8. Publicera
+### 9. Publicera
 
 Se [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
@@ -172,7 +182,7 @@ Läs vidare i [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | [DATABASE.md](docs/DATABASE.md) | Schema och varför det ser ut som det gör |
 | [SECURITY.md](docs/SECURITY.md) | RLS-modell, hemligheter, antaganden |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | GitHub Pages, Edge Functions, schemalagd synk |
-| [HUSHALL.md](docs/HUSHALL.md) | Förslag: flera personer på samma inköpslista |
+| [HUSHALL.md](docs/HUSHALL.md) | Hushållsmodellen: vad som delas, RLS-fällan, inbjudningar |
 
 ## Kända begränsningar
 
@@ -183,3 +193,5 @@ Läs vidare i [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - City Gross API är odokumenterat och kan ändras utan förvarning. `npm run
   test:live` säger till när det händer.
 - AI-driven menygenerering är förberedd men inte inkopplad. V1 är regelbaserad.
+- En person tillhör högst ett hushåll. Den som lämnar sitt hushåll tar ingen data
+  med sig - recept, skafferi och listor blir kvar hos de andra.

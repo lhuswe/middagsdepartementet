@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 supabase/functions/*/_lib/
 supabase/functions/*/dist/
+
+# Supabase CLI-cache, inte projektdata
+supabase/.temp/

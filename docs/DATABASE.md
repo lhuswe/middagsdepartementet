@@ -7,18 +7,23 @@ det här dokumentet förklarar varför schemat ser ut som det gör.
 
 ## Två sorters tabeller
 
-| Referensdata | Användardata |
-|---|---|
-| `stores` | `profiles` |
-| `ingredients` | `recipes`, `recipe_ingredients` |
-| `ingredient_aliases` | `meal_plans`, `meal_plan_items` |
-| `products` | `pantry_items` |
-| `product_price_history` | `shopping_lists`, `shopping_list_items` |
-| `sync_runs` | `ingredient_product_mappings`, `favorite_products` |
-| | `favorite_recipes`, `cooking_history` |
+| Referensdata | Hushållsdata | Persondata |
+|---|---|---|
+| `stores` | `households`, `household_members` | `profiles` |
+| `ingredients` | `household_invites` | |
+| `ingredient_aliases` | `recipes`, `recipe_ingredients` | |
+| `products` | `meal_plans`, `meal_plan_items` | |
+| `product_price_history` | `pantry_items` | |
+| `sync_runs` | `shopping_lists`, `shopping_list_items` | |
+| | `ingredient_product_mappings`, `favorite_products` | |
+| | `favorite_recipes`, `cooking_history` | |
 
-Referensdata är gemensam och skrivs bara av synkjobbet. Användardata är privat.
-Rättigheterna beskrivs i [SECURITY.md](SECURITY.md).
+Referensdata är gemensam och skrivs bara av synkjobbet. Hushållsdata är synlig
+för hushållets medlemmar. Persondata är privat, med ett undantag: medlemmar ser
+varandras namn och allergier, eftersom matsedeln utgår från allas allergier.
+
+Rättigheterna beskrivs i [SECURITY.md](SECURITY.md), ägarskapet i
+[HUSHALL.md](HUSHALL.md).
 
 ---
 
@@ -58,8 +63,9 @@ Katalogen genereras ur `src/domain/ingredients.ts` av
 ### `pantry_items.amount` i kanonisk enhet
 
 Gram eller milliliter, aldrig "2 paket". Omräkningen sker i gränssnittet, så att
-skafferiavdraget blir en ren subtraktion. Unikt per `(user_id, ingredient_id)` -
-ett hushåll har ett lager av varje vara.
+skafferiavdraget blir en ren subtraktion. Unikt per
+`(household_id, ingredient_id)` - ett hushåll har ett lager av varje vara, oavsett
+vem som lagerförde den.
 
 ### `shopping_list_items.product_snapshot`
 
@@ -77,8 +83,9 @@ presenteras som komplett.
 
 ### `meal_plans` med nyckel på veckostart
 
-Unikt per `(user_id, week_start)`, där `week_start` är måndagens datum. Det gör
-"den här veckan" entydigt och gör det trivialt att kopiera en vecka till nästa.
+Unikt per `(household_id, week_start)`, där `week_start` är måndagens datum. Det
+gör "den här veckan" entydigt för hushållet och gör det trivialt att kopiera en
+vecka till nästa.
 
 ### `product_price_history` med en rad per dygn
 
@@ -91,12 +98,21 @@ City Gross.
 ## Automatik
 
 **`touch_updated_at`** - trigger på `stores`, `ingredients`, `profiles`,
-`recipes`, `meal_plans`, `pantry_items`, `shopping_lists`. Kör med låst
-`search_path`.
+`households`, `recipes`, `meal_plans`, `pantry_items`, `shopping_lists`. Kör med
+låst `search_path`.
 
 **`handle_new_user`** - trigger på `auth.users` som skapar profilraden direkt vid
 registrering. Appen behöver därför aldrig hantera fallet "inloggad men
 profillös". `EXECUTE` är indraget från alla roller; den anropas bara av triggern.
+
+Den skapar däremot **inget hushåll**. En ny användare hamnar medvetet i läget
+"inloggad utan hushåll", där onboardingen låter en välja mellan att skapa ett
+eget och att lösa in en inbjudan. Att gissa åt användaren hade gjort det
+omöjligt att gå med i någon annans hushåll utan att först städa bort ett tomt.
+
+**Hushållsfunktionerna** - `mitt_hushall()`, `skapa_hushall()`,
+`los_in_inbjudan()` och `hushallets_allergier()`. Samtliga `security definer`
+med låst `search_path`. De beskrivs i [HUSHALL.md](HUSHALL.md).
 
 ---
 
@@ -110,6 +126,8 @@ Utöver primärnycklarna:
 - Samtliga främmandenycklar har täckande index. Utan dem måste Postgres scanna
   hela barntabellen vid varje cascade-delete.
 - `pantry_items`: partiellt index på `expires_on` där det inte är null.
+- `household_id` på samtliga hushållsägda tabeller. Varje RLS-policy jämför mot
+  den kolumnen, så utan index blir varje fråga en full scan.
 
 ---
 

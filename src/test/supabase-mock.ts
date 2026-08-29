@@ -16,8 +16,26 @@ import { vi } from 'vitest'
 export interface MockOptions {
   /** Rader per tabell. Tabeller som saknas svarar med tom lista. */
   tabeller?: Record<string, unknown[]>
+  /** Svar per databasfunktion. Saknas den svarar attrappen med null. */
+  funktioner?: Record<string, unknown>
   /** Sätts till false för att simulera utloggad användare. */
   inloggad?: boolean
+}
+
+export const TESTHUSHALL = {
+  id: '00000000-0000-4000-8000-000000000002',
+  name: 'Testhushållet',
+  store_number: '3230',
+  adults: 2,
+  children: 0,
+  servings_per_meal: 2,
+  max_cooking_minutes: 45,
+  weekly_budget: 900,
+  is_member: false,
+  assume_staples_available: true,
+  repetition_avoidance: 'medium',
+  created_at: '2026-08-01T00:00:00.000Z',
+  updated_at: '2026-08-01T00:00:00.000Z',
 }
 
 export const TESTANVANDARE = {
@@ -27,19 +45,10 @@ export const TESTANVANDARE = {
 
 export const TESTPROFIL = {
   id: TESTANVANDARE.id,
-  display_name: 'Testhushållet',
-  store_number: '3230',
-  adults: 2,
-  children: 0,
-  servings_per_meal: 2,
-  max_cooking_minutes: 45,
-  weekly_budget: 900,
+  display_name: 'Testpersonen',
   allergies: [],
   dislikes: [],
   diets: [],
-  is_member: false,
-  assume_staples_available: true,
-  repetition_avoidance: 'medium',
   is_admin: true,
   onboarded_at: '2026-08-01T00:00:00.000Z',
   created_at: '2026-08-01T00:00:00.000Z',
@@ -93,7 +102,7 @@ function frageKedja(rader: unknown[]) {
 }
 
 export function skapaSupabaseAttrapp(options: MockOptions = {}) {
-  const { tabeller = {}, inloggad = true } = options
+  const { tabeller = {}, funktioner = {}, inloggad = true } = options
 
   const session = inloggad
     ? {
@@ -107,6 +116,7 @@ export function skapaSupabaseAttrapp(options: MockOptions = {}) {
 
   return {
     from: vi.fn((tabell: string) => frageKedja(tabeller[tabell] ?? [])),
+    rpc: vi.fn(async (namn: string) => ({ data: funktioner[namn] ?? null, error: null })),
     auth: {
       getSession: vi.fn(async () => ({ data: { session }, error: null })),
       getUser: vi.fn(async () => ({ data: { user: session?.user ?? null }, error: null })),

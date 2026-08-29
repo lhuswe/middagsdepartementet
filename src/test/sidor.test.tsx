@@ -19,7 +19,7 @@ import type { ReactElement } from 'react'
 
 import { AuthProvider } from '../features/auth/AuthProvider.tsx'
 import { SEED_RECIPES } from '../domain/seed-recipes.ts'
-import { skapaSupabaseAttrapp, TESTANVANDARE, TESTPROFIL } from './supabase-mock.ts'
+import { skapaSupabaseAttrapp, TESTANVANDARE, TESTHUSHALL, TESTPROFIL } from './supabase-mock.ts'
 
 const attrapp = vi.hoisted(() => ({ klient: null as ReturnType<typeof skapaSupabaseAttrapp> | null }))
 
@@ -32,6 +32,7 @@ vi.mock('../lib/supabase.ts', () => ({
 
 const RECEPTRAD = {
   id: 'recept-1',
+  household_id: TESTHUSHALL.id,
   user_id: TESTANVANDARE.id,
   name: SEED_RECIPES[0]!.name,
   description: SEED_RECIPES[0]!.description,
@@ -60,6 +61,16 @@ const RECEPTRAD = {
 
 const FULLT_DATASET: Record<string, unknown[]> = {
   profiles: [TESTPROFIL],
+  households: [TESTHUSHALL],
+  household_members: [
+    {
+      household_id: TESTHUSHALL.id,
+      user_id: TESTANVANDARE.id,
+      role: 'owner',
+      joined_at: '2026-08-01T00:00:00.000Z',
+    },
+  ],
+  household_invites: [],
   stores: [
     {
       store_number: '3230',
@@ -74,6 +85,7 @@ const FULLT_DATASET: Record<string, unknown[]> = {
   pantry_items: [
     {
       id: 'p1',
+      household_id: TESTHUSHALL.id,
       user_id: TESTANVANDARE.id,
       ingredient_id: 'salt',
       amount: 500,
@@ -85,6 +97,7 @@ const FULLT_DATASET: Record<string, unknown[]> = {
   shopping_lists: [
     {
       id: 'lista-1',
+      household_id: TESTHUSHALL.id,
       user_id: TESTANVANDARE.id,
       meal_plan_id: null,
       name: 'Vecka 35',
@@ -134,8 +147,24 @@ const FULLT_DATASET: Record<string, unknown[]> = {
   favorite_products: [],
 }
 
-/** Tomt läge: allt utom profilen saknas. Här brukar krascherna finnas. */
-const TOMT_DATASET: Record<string, unknown[]> = { profiles: [TESTPROFIL] }
+/**
+ * Tomt läge: profil och hushåll finns, allt annat saknas.
+ *
+ * Här brukar krascherna finnas, och det är läget en ny användare möter direkt
+ * efter onboardingen.
+ */
+const TOMT_DATASET: Record<string, unknown[]> = {
+  profiles: [TESTPROFIL],
+  households: [TESTHUSHALL],
+  household_members: [
+    {
+      household_id: TESTHUSHALL.id,
+      user_id: TESTANVANDARE.id,
+      role: 'owner',
+      joined_at: '2026-08-01T00:00:00.000Z',
+    },
+  ],
+}
 
 function rendera(element: ReactElement, sokvag = '/') {
   const klient = new QueryClient({
@@ -239,6 +268,13 @@ const SIDOR: { namn: string; ladda: () => Promise<ReactElement>; sokvag?: string
     },
   },
   {
+    namn: 'Hushåll',
+    ladda: async () => {
+      const { HushallSida } = await import('../features/household/HushallSida.tsx')
+      return <HushallSida />
+    },
+  },
+  {
     namn: 'Inloggning',
     ladda: async () => {
       const { LoginPage } = await import('../features/auth/LoginPage.tsx')
@@ -269,7 +305,10 @@ describe.each([
 ])('sidorna renderar %s', (_namn, dataset) => {
   for (const sida of SIDOR) {
     it(`${sida.namn} monteras utan att kasta`, async () => {
-      attrapp.klient = skapaSupabaseAttrapp({ tabeller: dataset })
+      attrapp.klient = skapaSupabaseAttrapp({
+        tabeller: dataset,
+        funktioner: { hushallets_allergier: [] },
+      })
 
       const element = await sida.ladda()
       const { container } = rendera(element, sida.sokvag)
@@ -286,7 +325,10 @@ describe.each([
 
 describe('nyckelsidor visar rätt sak', () => {
   beforeEach(() => {
-    attrapp.klient = skapaSupabaseAttrapp({ tabeller: FULLT_DATASET })
+    attrapp.klient = skapaSupabaseAttrapp({
+      tabeller: FULLT_DATASET,
+      funktioner: { hushallets_allergier: [] },
+    })
   })
 
   it('inköpslistan visar produkten, mängden och summan', async () => {
@@ -307,7 +349,10 @@ describe('nyckelsidor visar rätt sak', () => {
   })
 
   it('veckan säger ifrån när ingen matsedel finns', async () => {
-    attrapp.klient = skapaSupabaseAttrapp({ tabeller: TOMT_DATASET })
+    attrapp.klient = skapaSupabaseAttrapp({
+      tabeller: TOMT_DATASET,
+      funktioner: { hushallets_allergier: [] },
+    })
     const { VeckaSida } = await import('../features/meal-planner/VeckaSida.tsx')
     rendera(<VeckaSida />, '/vecka')
 

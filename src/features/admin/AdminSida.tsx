@@ -12,6 +12,7 @@ import { Badge, Notis, SidLaddning } from '../../components/ui/feedback.tsx'
 import { SelectField } from '../../components/ui/form.tsx'
 import { INGREDIENTS, getIngredient } from '../../domain/ingredients.ts'
 import { matchIngredient, searchTermsFor } from '../../domain/matching.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { useProfil } from '../../hooks/useProfil.ts'
 import { supabase } from '../../lib/supabase.ts'
 import { antalProdukter, senasteSynk, sokProdukter } from '../../services/catalog.ts'
@@ -25,7 +26,8 @@ import { formatKr } from '../../lib/utils.ts'
  * döljandet som är skyddet.
  */
 export function AdminSida() {
-  const { profil, butik, isLoading } = useProfil()
+  const { profil, isLoading } = useProfil()
+  const { butik } = useHushall()
   const klient = useQueryClient()
   const [sokterm, setSokterm] = useState('potatis')
   const [testIngrediens, setTestIngrediens] = useState('mjolk')

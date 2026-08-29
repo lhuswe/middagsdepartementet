@@ -14,7 +14,7 @@ import { SHOPPING_CATEGORY_LABELS, SHOPPING_CATEGORY_ORDER } from '../../domain/
 import type { ShoppingCategory } from '../../domain/types.ts'
 import { formatQuantity } from '../../domain/units.ts'
 import { useAuth } from '../auth/auth-context.ts'
-import { useProfil } from '../../hooks/useProfil.ts'
+import { useHushall, useHushallsallergier } from '../../hooks/useHushall.ts'
 import { useRecept } from '../../hooks/useRecept.ts'
 import { useVeckoplan } from '../../hooks/useVeckoplan.ts'
 import { veckostart } from '../../services/mealPlans.ts'
@@ -51,7 +51,8 @@ export function InkopslistaSida() {
   const klient = useQueryClient()
   const { user } = useAuth()
 
-  const { profil, portioner } = useProfil()
+  const { hushall, portioner } = useHushall()
+  const { data: hushallsallergier } = useHushallsallergier()
   const { data: recept } = useRecept()
   const weekStart = veckostart()
   const { data: plan } = useVeckoplan(weekStart)
@@ -62,18 +63,18 @@ export function InkopslistaSida() {
   const [fel, setFel] = useState<string | null>(null)
 
   const aktivLista = useQuery({
-    queryKey: ['aktivlista', user?.id, listIdParam],
+    queryKey: ['aktivlista', hushall?.id, listIdParam],
     queryFn: async () => {
       if (listIdParam) return hamtaLista(listIdParam)
-      const senaste = await senasteOppnaLista(user!.id)
+      const senaste = await senasteOppnaLista(hushall!.id)
       return senaste ? hamtaLista(senaste.id) : null
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(hushall?.id),
   })
 
   const generera = useMutation({
     mutationFn: async () => {
-      if (!user || !profil || !recept) throw new Error('Uppgifter saknas.')
+      if (!user || !hushall || !recept) throw new Error('Uppgifter saknas.')
 
       const receptPerId = new Map(recept.map((item) => [item.id, item]))
       const maltider = (plan?.poster ?? [])
@@ -90,8 +91,8 @@ export function InkopslistaSida() {
         throw new Error('Veckan innehåller inga måltider att handla för.')
       }
 
-      const skafferi = tillPantryEntries(await hamtaSkafferi(user.id))
-      return genereraInkopslista(user.id, profil, maltider, skafferi, {
+      const skafferi = tillPantryEntries(await hamtaSkafferi(hushall.id))
+      return genereraInkopslista(hushall, user.id, hushallsallergier ?? [], maltider, skafferi, {
         mealPlanId: plan?.plan.id ?? null,
         namn: `Vecka ${format(parseISO(weekStart), 'w', { locale: sv })}`,
       })
@@ -109,19 +110,19 @@ export function InkopslistaSida() {
   // Veckoplaneraren länkar hit med ?generera=1.
   useEffect(() => {
     if (sokparametrar.get('generera') !== '1') return
-    if (!profil || !recept || !plan) return
+    if (!hushall || !recept || !plan) return
     sattSokparametrar({}, { replace: true })
     generera.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profil, recept, plan])
+  }, [hushall, recept, plan])
 
   const kryssa = useMutation({
     mutationFn: (args: { id: string; kryssad: boolean }) => kryssaPost(args.id, args.kryssad),
     onMutate: async ({ id, kryssad }) => {
       // Optimistiskt: i butiken ska kryssrutan svara direkt, inte vänta på nätet.
       await klient.cancelQueries({ queryKey: ['aktivlista'] })
-      const tidigare = klient.getQueryData(['aktivlista', user?.id, listIdParam])
-      klient.setQueryData(['aktivlista', user?.id, listIdParam], (gammal: unknown) => {
+      const tidigare = klient.getQueryData(['aktivlista', hushall?.id, listIdParam])
+      klient.setQueryData(['aktivlista', hushall?.id, listIdParam], (gammal: unknown) => {
         const data = gammal as Awaited<ReturnType<typeof hamtaLista>>
         if (!data) return gammal
         return {
@@ -132,7 +133,7 @@ export function InkopslistaSida() {
       return { tidigare }
     },
     onError: (_error, _variabler, context) => {
-      klient.setQueryData(['aktivlista', user?.id, listIdParam], context?.tidigare)
+      klient.setQueryData(['aktivlista', hushall?.id, listIdParam], context?.tidigare)
     },
   })
 
@@ -317,8 +318,8 @@ export function InkopslistaSida() {
                   </p>
                 ) : null}
               </div>
-              {profil?.weekly_budget ? (
-                <BudgetRuta budget={Number(profil.weekly_budget)} planerat={Number(lista.estimated_total)} />
+              {hushall?.weekly_budget ? (
+                <BudgetRuta budget={Number(hushall.weekly_budget)} planerat={Number(lista.estimated_total)} />
               ) : null}
               <Button variant="secondary" onClick={() => avsluta.mutate()}>
                 Avsluta handlingen
@@ -333,10 +334,10 @@ export function InkopslistaSida() {
         </>
       )}
 
-      {valjPost && profil?.store_number ? (
+      {valjPost && hushall?.store_number ? (
         <ProduktValjare
           post={valjPost}
-          storeNumber={profil.store_number}
+          storeNumber={hushall.store_number}
           onStang={() => setValjPost(null)}
           onSparad={() => {
             setValjPost(null)

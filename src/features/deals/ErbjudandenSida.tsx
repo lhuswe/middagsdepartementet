@@ -12,13 +12,13 @@ import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedbac
 import { INGREDIENTS } from '../../domain/ingredients.ts'
 import { matchIngredient } from '../../domain/matching.ts'
 import type { Product } from '../../domain/types.ts'
-import { useProfil } from '../../hooks/useProfil.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { hamtaErbjudanden } from '../../services/catalog.ts'
 import { formatKr } from '../../lib/utils.ts'
 
 export function ErbjudandenSida() {
   const navigera = useNavigate()
-  const { butik } = useProfil()
+  const { butik } = useHushall()
   const [valda, setValda] = useState<string[]>([])
 
   const erbjudanden = useQuery({

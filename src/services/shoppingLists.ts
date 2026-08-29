@@ -20,7 +20,7 @@ import type { PantryEntry, PlannedMeal } from '../domain/aggregate.ts'
 import { aggregateNeeds, needsRequiringPurchase, subtractPantry } from '../domain/aggregate.ts'
 import type { Product } from '../domain/types.ts'
 import { supabase } from '../lib/supabase.ts'
-import type { ProfileRow, ShoppingListItemRow, ShoppingListRow } from '../types/database.ts'
+import type { HouseholdRow, ShoppingListItemRow, ShoppingListRow } from '../types/database.ts'
 import { hamtaKandidater } from './catalog.ts'
 
 export interface GenereringsResultat {
@@ -28,21 +28,21 @@ export interface GenereringsResultat {
   listId: string
 }
 
-/** Användarens sparade produktval och favoriter för butiken. */
+/** Hushållets sparade produktval och favoriter för butiken. */
 async function hamtaMappningar(
-  userId: string,
+  householdId: string,
   storeNumber: string,
 ): Promise<{ sparade: Record<string, string>; favoriter: Record<string, string> }> {
   const [mappningar, favoriter] = await Promise.all([
     supabase
       .from('ingredient_product_mappings')
       .select('ingredient_id, gtin')
-      .eq('user_id', userId)
+      .eq('household_id', householdId)
       .eq('store_number', storeNumber),
     supabase
       .from('favorite_products')
       .select('ingredient_id, gtin')
-      .eq('user_id', userId)
+      .eq('household_id', householdId)
       .eq('store_number', storeNumber),
   ])
 
@@ -62,15 +62,16 @@ async function hamtaMappningar(
  * → prissätt → gruppera → spara.
  */
 export async function genereraInkopslista(
+  hushall: HouseholdRow,
   userId: string,
-  profil: ProfileRow,
+  allergier: string[],
   meals: PlannedMeal[],
   skafferi: PantryEntry[],
   options: { mealPlanId?: string | null; namn?: string } = {},
 ): Promise<GenereringsResultat> {
   // Ingen fallback: priser är butiksspecifika, och en gissad butik ger
   // priser från fel stad utan att någon märker det.
-  const storeNumber = profil.store_number
+  const storeNumber = hushall.store_number
   if (!storeNumber) {
     throw new Error('Ingen butik är vald. Välj butik under Inställningar innan du skapar listan.')
   }
@@ -78,7 +79,7 @@ export async function genereraInkopslista(
   // Vilka ingredienser behöver vi över huvud taget slå upp?
   const behov = needsRequiringPurchase(
     subtractPantry(aggregateNeeds(meals), skafferi, {
-      assumeStaplesAvailable: profil.assume_staples_available,
+      assumeStaplesAvailable: hushall.assume_staples_available,
     }),
   ).filter((need) => !need.optionalOnly)
 
@@ -87,7 +88,7 @@ export async function genereraInkopslista(
       behov.map((need) => need.ingredient),
       storeNumber,
     ),
-    hamtaMappningar(userId, storeNumber),
+    hamtaMappningar(hushall.id, storeNumber),
   ])
 
   const lookup: ProductLookup = (ingredient) => katalog.get(ingredient.id) ?? []
@@ -95,13 +96,15 @@ export async function genereraInkopslista(
   const lista = buildShoppingList(meals, skafferi, lookup, {
     savedMappings: mappningar.sparade,
     favorites: mappningar.favoriter,
-    allergies: profil.allergies ?? [],
-    assumeStaplesAvailable: profil.assume_staples_available,
-    isMember: profil.is_member,
+    // Unionen av hushållets allergier, inte den inloggades egna. En rätt som
+    // är olämplig för en medlem är olämplig för måltiden.
+    allergies: allergier,
+    assumeStaplesAvailable: hushall.assume_staples_available,
+    isMember: hushall.is_member,
     at: new Date(),
   })
 
-  const listId = await sparaLista(userId, profil, lista, options)
+  const listId = await sparaLista(hushall, userId, lista, options)
   return { lista, listId }
 }
 
@@ -153,18 +156,19 @@ function tillRad(
 }
 
 async function sparaLista(
+  hushall: HouseholdRow,
   userId: string,
-  profil: ProfileRow,
   lista: ShoppingList,
   options: { mealPlanId?: string | null; namn?: string },
 ): Promise<string> {
   const { data: listRad, error } = await supabase
     .from('shopping_lists')
     .insert({
+      household_id: hushall.id,
       user_id: userId,
       meal_plan_id: options.mealPlanId ?? null,
       name: options.namn ?? 'Inköpslista',
-      store_number: profil.store_number!,
+      store_number: hushall.store_number!,
       estimated_total: Math.round(lista.estimatedTotal * 100) / 100,
       items_without_price: lista.itemsWithoutPrice,
       oldest_data_at: lista.oldestDataAt,
@@ -209,11 +213,11 @@ export async function hamtaLista(listId: string): Promise<SparadLista | null> {
   return { lista, poster: (poster ?? []).sort((a, b) => a.sort_order - b.sort_order) }
 }
 
-export async function hamtaListor(userId: string, limit = 20): Promise<ShoppingListRow[]> {
+export async function hamtaListor(householdId: string, limit = 20): Promise<ShoppingListRow[]> {
   const { data, error } = await supabase
     .from('shopping_lists')
     .select('*')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -221,11 +225,11 @@ export async function hamtaListor(userId: string, limit = 20): Promise<ShoppingL
   return data ?? []
 }
 
-export async function senasteOppnaLista(userId: string): Promise<ShoppingListRow | null> {
+export async function senasteOppnaLista(householdId: string): Promise<ShoppingListRow | null> {
   const { data, error } = await supabase
     .from('shopping_lists')
     .select('*')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(1)
@@ -297,27 +301,27 @@ export async function sattListStatus(
  * samma ingrediens `confirmed` i stället för att fråga igen.
  */
 export async function sparaProduktval(
-  userId: string,
+  householdId: string,
   ingredientId: string,
   storeNumber: string,
   gtin: string,
 ): Promise<void> {
   const { error } = await supabase.from('ingredient_product_mappings').upsert(
-    { user_id: userId, ingredient_id: ingredientId, store_number: storeNumber, gtin },
-    { onConflict: 'user_id,ingredient_id,store_number' },
+    { household_id: householdId, ingredient_id: ingredientId, store_number: storeNumber, gtin },
+    { onConflict: 'household_id,ingredient_id,store_number' },
   )
   if (error) throw error
 }
 
 export async function sparaFavoritprodukt(
-  userId: string,
+  householdId: string,
   ingredientId: string,
   storeNumber: string,
   gtin: string,
 ): Promise<void> {
   const { error } = await supabase.from('favorite_products').upsert(
-    { user_id: userId, ingredient_id: ingredientId, store_number: storeNumber, gtin },
-    { onConflict: 'user_id,ingredient_id,store_number' },
+    { household_id: householdId, ingredient_id: ingredientId, store_number: storeNumber, gtin },
+    { onConflict: 'household_id,ingredient_id,store_number' },
   )
   if (error) throw error
 }

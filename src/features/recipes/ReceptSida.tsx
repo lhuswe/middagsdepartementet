@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button.tsx'
 import { Card } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
 import { useAuth } from '../auth/auth-context.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { useFavoritrecept, useRecept } from '../../hooks/useRecept.ts'
 import { importeraStartrecept } from '../../services/recipes.ts'
 import { cn, formatMinutes } from '../../lib/utils.ts'
@@ -30,6 +31,7 @@ const FILTER: { id: string; etikett: string; test: (tags: string[], minuter: num
 
 export function ReceptSida() {
   const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
   const { data: recept, isLoading } = useRecept()
   const { favoriter, vaxla } = useFavoritrecept()
@@ -39,7 +41,7 @@ export function ReceptSida() {
   const [baraFavoriter, setBaraFavoriter] = useState(false)
 
   const importera = useMutation({
-    mutationFn: () => importeraStartrecept(user!.id),
+    mutationFn: () => importeraStartrecept(hushallId!, user!.id),
     onSuccess: () => klient.invalidateQueries({ queryKey: ['recept'] }),
   })
 

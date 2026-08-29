@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useAuth } from '../features/auth/auth-context.ts'
+import { useHushall } from './useHushall.ts'
 import {
   hamtaFavoriter,
   hamtaLagningshistorik,
@@ -10,51 +11,53 @@ import {
 } from '../services/recipes.ts'
 
 export function useRecept() {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   return useQuery({
-    queryKey: ['recept', user?.id],
-    queryFn: () => hamtaRecept(user!.id),
-    enabled: Boolean(user?.id),
+    queryKey: ['recept', hushallId],
+    queryFn: () => hamtaRecept(hushallId!),
+    enabled: Boolean(hushallId),
     staleTime: 5 * 60_000,
   })
 }
 
 export function useFavoritrecept() {
   const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
 
   const query = useQuery({
-    queryKey: ['favoritrecept', user?.id],
-    queryFn: () => hamtaFavoriter(user!.id),
-    enabled: Boolean(user?.id),
+    queryKey: ['favoritrecept', hushallId],
+    queryFn: () => hamtaFavoriter(hushallId!),
+    enabled: Boolean(hushallId),
   })
 
   const vaxla = useMutation({
     mutationFn: ({ recipeId, favorit }: { recipeId: string; favorit: boolean }) =>
-      vaxlaFavorit(user!.id, recipeId, favorit),
-    onSuccess: () => klient.invalidateQueries({ queryKey: ['favoritrecept', user?.id] }),
+      vaxlaFavorit(hushallId!, user!.id, recipeId, favorit),
+    onSuccess: () => klient.invalidateQueries({ queryKey: ['favoritrecept', hushallId] }),
   })
 
   return { favoriter: query.data ?? new Set<string>(), vaxla }
 }
 
 export function useLagningshistorik() {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   return useQuery({
-    queryKey: ['lagningshistorik', user?.id],
-    queryFn: () => hamtaLagningshistorik(user!.id),
-    enabled: Boolean(user?.id),
+    queryKey: ['lagningshistorik', hushallId],
+    queryFn: () => hamtaLagningshistorik(hushallId!),
+    enabled: Boolean(hushallId),
     staleTime: 60_000,
   })
 }
 
 export function useMarkeraLagad() {
   const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ recipeId, servings }: { recipeId: string; servings: number }) =>
-      markeraLagad(user!.id, recipeId, servings),
-    onSuccess: () => klient.invalidateQueries({ queryKey: ['lagningshistorik', user?.id] }),
+      markeraLagad(hushallId!, user!.id, recipeId, servings),
+    onSuccess: () => klient.invalidateQueries({ queryKey: ['lagningshistorik', hushallId] }),
   })
 }

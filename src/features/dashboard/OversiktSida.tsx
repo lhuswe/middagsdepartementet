@@ -9,7 +9,7 @@ import { SidHuvud } from '../../components/Layout.tsx'
 import { LinkButton } from '../../components/ui/button.tsx'
 import { Card, CardBody, CardHeader } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
-import { useAuth } from '../auth/auth-context.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { useProfil } from '../../hooks/useProfil.ts'
 import { useRecept } from '../../hooks/useRecept.ts'
 import { useVeckoplan } from '../../hooks/useVeckoplan.ts'
@@ -20,22 +20,22 @@ import { senasteOppnaLista } from '../../services/shoppingLists.ts'
 import { formatKrRound, formatMinutes } from '../../lib/utils.ts'
 
 export function OversiktSida() {
-  const { user } = useAuth()
-  const { profil, butik, isLoading: profilLaddar } = useProfil()
+  const { profil, isLoading: profilLaddar } = useProfil()
+  const { butik, hushallId } = useHushall()
   const { data: recept } = useRecept()
   const weekStart = veckostart()
   const { data: plan, isLoading: planLaddar } = useVeckoplan(weekStart)
 
   const lista = useQuery({
-    queryKey: ['oppenlista', user?.id],
-    queryFn: () => senasteOppnaLista(user!.id),
-    enabled: Boolean(user?.id),
+    queryKey: ['oppenlista', hushallId],
+    queryFn: () => senasteOppnaLista(hushallId!),
+    enabled: Boolean(hushallId),
   })
 
   const skafferi = useQuery({
-    queryKey: ['skafferi', user?.id],
-    queryFn: () => hamtaSkafferi(user!.id),
-    enabled: Boolean(user?.id),
+    queryKey: ['skafferi', hushallId],
+    queryFn: () => hamtaSkafferi(hushallId!),
+    enabled: Boolean(hushallId),
   })
 
   const synk = useQuery({

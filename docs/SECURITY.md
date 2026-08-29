@@ -27,19 +27,40 @@ vem som frågar. `service_role` går förbi RLS och är den enda vägen in.
 > rakt av på produktkatalogen hade den regeln tvingat varje hushåll att ha en
 > egen kopia av City Gross sortiment.
 
-### Användardata - privat
+### Hushållsdata - synlig inom hushållet
 
-`profiles`, `recipes`, `recipe_ingredients`, `meal_plans`, `meal_plan_items`,
-`pantry_items`, `shopping_lists`, `shopping_list_items`,
-`ingredient_product_mappings`, `favorite_products`, `favorite_recipes`,
-`cooking_history`
+`households`, `household_members`, `household_invites`, `recipes`,
+`recipe_ingredients`, `meal_plans`, `meal_plan_items`, `pantry_items`,
+`shopping_lists`, `shopping_list_items`, `ingredient_product_mappings`,
+`favorite_products`, `favorite_recipes`, `cooking_history`
 
 Fyra policyer per tabell (SELECT, INSERT, UPDATE, DELETE), alla mot
-`auth.uid() = user_id`.
+`household_id = (select public.mitt_hushall())`.
+
+`mitt_hushall()` är `security definer` och krävs för att undvika oändlig
+rekursion: en policy på `household_members` som frågar `household_members`
+utlöser sig själv. Funktionen tar ingen parameter och kan bara returnera
+anroparens eget medlemskap. Se [HUSHALL.md](HUSHALL.md).
 
 **Barntabeller** (`recipe_ingredients`, `meal_plan_items`,
-`shopping_list_items`) har inget eget `user_id`. De ärver ägarskapet via en
+`shopping_list_items`) har inget eget `household_id`. De ärver ägarskapet via en
 `exists`-kontroll mot förälderns rad - i policyn, inte i frontend.
+
+**Medlemskap skrivs aldrig från klienten.** `insert` och `update` är indragna
+från `authenticated` på `household_members`, av samma skäl som `is_admin` är
+skyddad på `profiles`: annars kan en medlem sätta sin egen roll till `owner`
+eller flytta sig själv till ett annat hushåll. Medlemskap ändras bara genom
+`skapa_hushall()` och `los_in_inbjudan()`. Att lämna hushållet är den enda
+tillåtna `delete`, och bara på den egna raden.
+
+### Persondata - privat, med ett medvetet undantag
+
+`profiles`. Var och en skriver bara sin egen rad.
+
+Undantaget: medlemmar i samma hushåll kan **läsa** varandras rader. Det är
+nödvändigt eftersom matsedeln utgår från unionen av allas allergier, och en
+allergi som inte syns kan inte kontrolleras. Valet visas öppet i gränssnittet
+i stället för att tyst påverka förslagen.
 
 ### Driftdata
 
@@ -111,7 +132,7 @@ nu 409 om en körning redan pågår för butiken.
   med deras domän
 - Inga `target="_blank"` utan `rel`
 - Ingen direkt användning av `localStorage`; sessionen sköts av Supabase
-- Samtliga 18 tabeller har RLS påslaget med policyer som täcker rätt kommandon
+- Samtliga tabeller har RLS påslaget med policyer som täcker rätt kommandon
 
 ### Kvar att göra, kräver panelen
 
@@ -119,20 +140,42 @@ nu 409 om en körning redan pågår för butiken.
 HaveIBeenPwned. Slå på under Authentication, Policies. Det går inte att göra via
 API:et med de verktyg som finns här.
 
+### Förväntade varningar från lintern
+
+Fyra varningar av typen *Signed-In Users Can Execute SECURITY DEFINER Function*
+gäller `mitt_hushall()`, `hushallets_allergier()`, `skapa_hushall()` och
+`los_in_inbjudan()`. De är avsiktliga: appen anropar dem via RPC, och de måste
+vara `security definer` för att kringgå den RLS de själva ligger till grund för.
+
+Ingen av dem tar en parameter som pekar ut *vems* data som ska röras.
+`mitt_hushall()` och `hushallets_allergier()` utgår enbart från `auth.uid()`.
+`skapa_hushall()` gör anroparen till ägare av det den skapar.
+`los_in_inbjudan()` tar en kod på 72 slumpbitar och vägrar den som redan tillhör
+ett hushåll. Det finns inget argument att manipulera för att komma åt någon
+annans rader.
+
 ---
 
 ## Verifiering
 
 RLS-policyer som *ser* rätt ut men läcker är hela poängen med att testa dem.
-Kontrollen som kördes vid uppsättningen skapade två användare, ett recept var,
-och frågade databasen som respektive användare:
 
-| Kontroll | Egna | Andras |
+Kontrollen kördes om när hushållsmodellen infördes, nu med två hushåll och en
+medlem som inte är ägare. Frågorna ställdes som medlem A2 i hushåll A:
+
+| Kontroll | Eget hushåll | Annat hushåll |
 |---|---|---|
+| `households` | 1 | 0 |
+| `household_members` | 2 | 0 |
+| `profiles` | 2 | 0 |
 | Recept | 1 | 0 |
 | Receptrader (via förälderpolicy) | 1 | 0 |
-| Profil | 1 | 0 |
+| Skafferiposter | 1 | 0 |
 | Delad referensdata | 1 | - |
+
+`hushallets_allergier()` returnerade unionen över båda medlemmarna, inte bara
+den inloggades egna. Ett försök att sätta sin egen roll till `owner` gav
+`permission denied for table household_members`.
 
 Kolumnskyddet på `profiles` bör testas på samma sätt vid schemaändringar:
 
@@ -141,6 +184,9 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"<uuid>","role":"authenticated"}';
 update public.profiles set is_admin = true where id = '<uuid>';
 -- Ska ge: permission denied for table profiles
+
+update public.household_members set role = 'owner' where user_id = '<uuid>';
+-- Ska ge: permission denied for table household_members
 ```
 
 Att köra om den vid schemaändringar är billigt. Använd en transaktion med
@@ -213,9 +259,11 @@ mot City Gross.
 - Appen har ingen självregistrering. Konton skapas i Supabase-panelen. Skulle
   självregistrering slås på behöver `is_admin` och åtkomsten till `sync_runs`
   ses över.
-- Modellen förutsätter en användare per hushåll. Delade hushåll med flera konton
-  är inte implementerat. Se `docs/HUSHALL.md` för ett förslag, och notera att
-  det förslaget ändrar RLS-modellen i grunden.
+- En person tillhör högst ett hushåll. `household_members.user_id` är unik. Det
+  är en förenkling, inte en säkerhetsgräns, men den gör att varje fråga har ett
+  entydigt hushåll att utgå från. Se [HUSHALL.md](HUSHALL.md).
+- Den som lämnar ett hushåll tar ingen data med sig. Recept, skafferi och listor
+  blir kvar hos de kvarvarande medlemmarna.
 - City Gross-integrationen läser endast publika, oautentiserade endpoints. Ingen
   inloggning, CAPTCHA eller bot-skydd kringgås. Se
   [CITYGROSS-INTEGRATION.md](CITYGROSS-INTEGRATION.md).

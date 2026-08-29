@@ -7,6 +7,7 @@ import { SidLaddning } from './components/ui/feedback.tsx'
 import { AuthProvider } from './features/auth/AuthProvider.tsx'
 import { useAuth } from './features/auth/auth-context.ts'
 import { LoginPage } from './features/auth/LoginPage.tsx'
+import { useHushall } from './hooks/useHushall.ts'
 import { useProfil } from './hooks/useProfil.ts'
 
 /*
@@ -50,6 +51,9 @@ const AdminSida = lazy(() =>
 )
 const OnboardingSida = lazy(() =>
   import('./features/onboarding/OnboardingSida.tsx').then((m) => ({ default: m.OnboardingSida })),
+)
+const HushallSida = lazy(() =>
+  import('./features/household/HushallSida.tsx').then((m) => ({ default: m.HushallSida })),
 )
 
 const klient = new QueryClient({
@@ -103,6 +107,7 @@ function Rutter() {
         <Route path="/skafferi" element={<SkafferiSida />} />
         <Route path="/erbjudanden" element={<ErbjudandenSida />} />
         <Route path="/historik" element={<HistorikSida />} />
+        <Route path="/hushall" element={<HushallSida />} />
         <Route path="/installningar" element={<InstallningarSida />} />
         <Route path="/admin" element={<AdminSida />} />
       </Route>
@@ -118,9 +123,15 @@ function Rutter() {
  */
 function SkyddadYta() {
   const { profil, isLoading } = useProfil()
+  const { saknarHushall, isLoading: hushallLaddar } = useHushall()
 
-  if (isLoading) return <SidLaddning />
-  if (profil && !profil.onboarded_at) return <Navigate to="/valkommen" replace />
+  if (isLoading || hushallLaddar) return <SidLaddning />
+
+  // Utan hushåll finns ingen matsedel, inget skafferi och inga recept att visa.
+  // Onboardingen skapar det, och tar även hand om den som lämnat sitt hushåll.
+  if (profil && (!profil.onboarded_at || saknarHushall)) {
+    return <Navigate to="/valkommen" replace />
+  }
 
   return <Layout visaAdmin={profil?.is_admin ?? false} />
 }

@@ -28,9 +28,12 @@ const MONSTER = [
   'README.md',
   'index.html',
   'public/404.html',
+  '*.json',
+  '*.ts',
+  '.github/workflows/*.yml',
 ]
 
-const UNDANTAG = ['_lib/', 'dist/', 'node_modules/']
+const UNDANTAG = ['_lib/', 'dist/', 'node_modules/', 'package-lock.json']
 
 function filerAttGranska(): string[] {
   const funna = MONSTER.flatMap((monster) => globSync(monster, { cwd: rot }))

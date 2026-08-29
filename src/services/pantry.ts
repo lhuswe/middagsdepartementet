@@ -1,5 +1,8 @@
 /**
- * Skafferiet.
+ * Skafferiet, som tillhör hushållet.
+ *
+ * Det finns ett kylskåp, och avdraget mot veckans behov ska gälla för alla som
+ * äter ur det.
  *
  * Mängderna lagras i ingrediensens kanoniska enhet (gram eller milliliter), så
  * att avdraget mot veckans behov blir en ren subtraktion. Omräkningen från vad
@@ -13,11 +16,11 @@ import type { RecipeUnit } from '../domain/types.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { PantryItemRow } from '../types/database.ts'
 
-export async function hamtaSkafferi(userId: string): Promise<PantryItemRow[]> {
+export async function hamtaSkafferi(householdId: string): Promise<PantryItemRow[]> {
   const { data, error } = await supabase
     .from('pantry_items')
     .select('*')
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .order('ingredient_id')
 
   if (error) throw error
@@ -34,7 +37,7 @@ export function tillPantryEntries(rader: PantryItemRow[]): PantryEntry[] {
  * kanonisk enhet - annars skulle "3 dl ris" och "250 g ris" inte gå att jämföra.
  */
 export async function sparaSkafferipost(
-  userId: string,
+  householdId: string,
   ingredientId: string,
   varde: number,
   enhet: RecipeUnit,
@@ -52,24 +55,24 @@ export async function sparaSkafferipost(
 
   const { error } = await supabase.from('pantry_items').upsert(
     {
-      user_id: userId,
+      household_id: householdId,
       ingredient_id: ingredientId,
       amount: Math.round(bas.value * 1000) / 1000,
       expires_on: extra.expiresOn ?? null,
       min_stock: extra.minStock ?? null,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: 'user_id,ingredient_id' },
+    { onConflict: 'household_id,ingredient_id' },
   )
 
   if (error) throw error
 }
 
-export async function taBortSkafferipost(userId: string, ingredientId: string): Promise<void> {
+export async function taBortSkafferipost(householdId: string, ingredientId: string): Promise<void> {
   const { error } = await supabase
     .from('pantry_items')
     .delete()
-    .eq('user_id', userId)
+    .eq('household_id', householdId)
     .eq('ingredient_id', ingredientId)
 
   if (error) throw error

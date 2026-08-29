@@ -1,9 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useAuth } from '../features/auth/auth-context.ts'
-import { butikFor, hamtaButiker, hamtaProfil, portionerFor, sparaProfil } from '../services/profile.ts'
+import { hamtaButiker, hamtaProfil, sparaProfil } from '../services/profile.ts'
 import type { ProfileRow } from '../types/database.ts'
 
+/**
+ * Den inloggades egen profil.
+ *
+ * Hushållets inställningar ligger i useHushall. Här finns bara identitet,
+ * allergier och smak.
+ */
 export function useProfil() {
   const { user } = useAuth()
   const userId = user?.id
@@ -15,18 +21,7 @@ export function useProfil() {
     staleTime: 60_000,
   })
 
-  const butik = butikFor(query.data ?? null)
-
-  return {
-    ...query,
-    profil: query.data ?? null,
-    portioner: portionerFor(query.data ?? null),
-    /** Vald butik, eller null. Se butikFor för varför det inte finns en default. */
-    butik,
-    /** Sant när profilen laddats men ingen butik är vald. */
-    saknarButik: !query.isLoading && Boolean(query.data) && butik === null,
-    userId,
-  }
+  return { ...query, profil: query.data ?? null, userId }
 }
 
 export function useSparaProfil() {
@@ -37,7 +32,9 @@ export function useSparaProfil() {
     mutationFn: (andringar: Partial<ProfileRow>) => sparaProfil(user!.id, andringar),
     onSuccess: (profil) => {
       klient.setQueryData(['profil', user?.id], profil)
-      void klient.invalidateQueries({ queryKey: ['inkopslista'] })
+      // Allergier påverkar både matsedeln och inköpslistan för hela hushållet.
+      void klient.invalidateQueries({ queryKey: ['hushallsallergier'] })
+      void klient.invalidateQueries({ queryKey: ['medlemmar'] })
     },
   })
 }

@@ -11,6 +11,7 @@ import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedbac
 import type { PlannedMeal } from '../../domain/aggregate.ts'
 import { bytUtMaltid, planeraVecka, type PlanOptions } from '../../domain/planner.ts'
 import type { Recipe } from '../../domain/types.ts'
+import { useHushall, useHushallsallergier } from '../../hooks/useHushall.ts'
 import { useProfil } from '../../hooks/useProfil.ts'
 import { useLagningshistorik, useRecept } from '../../hooks/useRecept.ts'
 import { useSattMaltid, useSparaVecka, useVeckoplan } from '../../hooks/useVeckoplan.ts'
@@ -22,7 +23,9 @@ export function VeckaSida() {
   const [sokparametrar, sattSokparametrar] = useSearchParams()
   const [weekStart, setWeekStart] = useState(veckostart())
 
-  const { profil, portioner, isLoading: profilLaddar } = useProfil()
+  const { profil, isLoading: profilLaddar } = useProfil()
+  const { hushall, portioner } = useHushall()
+  const { data: hushallsallergier } = useHushallsallergier()
   const { data: recept, isLoading: receptLaddar } = useRecept()
   const { data: historik } = useLagningshistorik()
   const { data: plan, isLoading: planLaddar } = useVeckoplan(weekStart)
@@ -56,15 +59,18 @@ export function VeckaSida() {
       startDate: parseISO(weekStart),
       servings: portioner,
       seed: fro,
-      ...(profil?.max_cooking_minutes ? { maxMinutes: profil.max_cooking_minutes } : {}),
-      avoidIngredientIds: [...(profil?.dislikes ?? []), ...(profil?.allergies ?? [])],
-      repetitionAvoidance: profil?.repetition_avoidance ?? 'medium',
+      ...(hushall?.max_cooking_minutes ? { maxMinutes: hushall.max_cooking_minutes } : {}),
+      // Allergier tas för hela hushållet, inte bara för den inloggade: en rätt
+      // som är olämplig för en medlem är olämplig för måltiden. Ogillar är
+      // personligt och viktas mjukare.
+      avoidIngredientIds: [...(profil?.dislikes ?? []), ...(hushallsallergier ?? [])],
+      repetitionAvoidance: hushall?.repetition_avoidance ?? 'medium',
       recentlyCooked: (historik ?? []).map((post) => ({
         recipeId: post.recipeId,
         daysAgo: post.daysAgo,
       })),
     }),
-    [weekStart, portioner, fro, profil, historik],
+    [weekStart, portioner, fro, profil, hushall, hushallsallergier, historik],
   )
 
   function generera() {
