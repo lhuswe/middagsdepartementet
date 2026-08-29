@@ -3,7 +3,7 @@
  *
  * Finns för att sidorna ska gå att rendera i test utan databas och utan
  * inloggning. Kedjan (`.from().select().eq().order()`) byggs som en proxy som
- * returnerar sig själv tills någon väntar på den — då faller svaret ut ur
+ * returnerar sig själv tills någon väntar på den - då faller svaret ut ur
  * `TABELLDATA`.
  *
  * Syftet är inte att simulera Postgres, utan att fånga det som annars bara

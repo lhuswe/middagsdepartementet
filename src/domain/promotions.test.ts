@@ -7,7 +7,7 @@ import { applicablePromotions, calculatePrice, isPromotionActive } from './promo
 const DURING = new Date('2026-08-28T12:00:00+02:00')
 const AFTER = new Date('2026-09-05T12:00:00+02:00')
 
-describe('calculatePrice — ItemsTotal ("3 för 28 kr")', () => {
+describe('calculatePrice - ItemsTotal ("3 för 28 kr")', () => {
   const product = makeProduct({
     name: 'Tomater Krossade',
     descriptiveSize: '390G',
@@ -59,7 +59,7 @@ describe('calculatePrice — ItemsTotal ("3 för 28 kr")', () => {
   })
 })
 
-describe('calculatePrice — PriceChangeAll', () => {
+describe('calculatePrice - PriceChangeAll', () => {
   const product = makeProduct({
     name: 'Spetskål',
     descriptiveSize: 'CA600G',
@@ -125,7 +125,7 @@ describe('kampanjers giltighet', () => {
   })
 })
 
-describe('calculatePrice — gränsfall', () => {
+describe('calculatePrice - gränsfall', () => {
   it('noll i antal kostar noll', () => {
     const result = calculatePrice(makeProduct({ name: 'Vara' }), 0)
     expect(result.total).toBe(0)

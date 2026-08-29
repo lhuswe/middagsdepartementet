@@ -7,7 +7,7 @@
  *    (`#access_token=...`), vilket kolliderar med hash-routing och beter sig
  *    olika på GitHub Pages jämfört med dev-servern. PKCE lägger i stället en
  *    `?code=` i query-strängen. Utan detta fungerar magisk länk lokalt men går
- *    sönder i produktion — den värsta sortens bugg.
+ *    sönder i produktion - den värsta sortens bugg.
  *
  * 2. Bara den publika nyckeln. Skyddet ligger i RLS, inte i att nyckeln är
  *    hemlig. Service role-nyckeln finns aldrig i frontenden.
@@ -24,7 +24,7 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
  * Null när konfigurationen är komplett, annars en förklaring att visa.
  *
  * Modulen kastar medvetet INTE här. Ett fel vid modulladdning inträffar innan
- * React hunnit rendera något, så ingen felgräns kan fånga det — resultatet blir
+ * React hunnit rendera något, så ingen felgräns kan fånga det - resultatet blir
  * en vit skärm utan förklaring. Det har hänt en gång, i produktion, och ska
  * inte hända igen. `main.tsx` läser det här värdet och visar en läsbar sida.
  */

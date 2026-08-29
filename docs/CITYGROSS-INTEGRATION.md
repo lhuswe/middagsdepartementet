@@ -23,7 +23,7 @@ Söket drivs av Loop54, en svensk sökmotor för e-handel. Svaren är JSON.
 
 ### Butiker
 
-`/api/v1/sites?siteTypeId=3` svarar `{ sites: [...] }` — **inte** en naken
+`/api/v1/sites?siteTypeId=3` svarar `{ sites: [...] }` - **inte** en naken
 array. 38 butiker, var och en med ett `storeNumber`.
 
 **City Gross Sundsvall = `3230`.**
@@ -83,7 +83,7 @@ frukt- och gröntavdelningen.
 
 ### 3. Kampanjer med minimiantal
 
-Den vanligaste kampanjformen är `effectType: "ItemsTotal"` — "3 för 28 kr" —
+Den vanligaste kampanjformen är `effectType: "ItemsTotal"` - "3 för 28 kr" -
 där `value` är priset för **hela gruppen** och `minQuantity` antalet som krävs.
 
 Rabatten gäller inte om man köper två. En prisberäkning som inte modellerar det
@@ -103,21 +103,21 @@ Felet ser ut som ett generellt integrationshaveri och tog lång tid att hitta.
 
 ## Fält som är bättre än väntat
 
-- **`comparativePrice`** — jämförpriset är färdigberäknat. Ingen anledning att
+- **`comparativePrice`** - jämförpriset är färdigberäknat. Ingen anledning att
   räkna kr/kg själv.
-- **`bfCategoryCode`** — hierarkisk kategorikod (`10183602` = Skafferiet ›
+- **`bfCategoryCode`** - hierarkisk kategorikod (`10183602` = Skafferiet ›
   Konserver › Tomatkonserver). Används både för att filtrera bort felaktiga
   matchningar och för att avgöra om två kandidater är samma sorts vara.
-- **`gtin`** — EAN-koden är en stabil nyckel över tid. `id` innehåller ett
+- **`gtin`** - EAN-koden är en stabil nyckel över tid. `id` innehåller ett
   suffix för säljenhet (`_ST`, `_KG`) och duger sämre.
-- **`allergens`** — finns, men är tomt för de allra flesta varor. Se nedan.
+- **`allergens`** - finns, men är tomt för de allra flesta varor. Se nedan.
 
 ## Allergener
 
 `foodAndBeverageExtension.allergenInformation.allergens` innehåller ibland
 `[{ typeCode: "Mjölk", levelOfContainment: 0 }]`, men är oftast `null`.
 
-Appen tolkar `null` som **okänt** — aldrig som "fri från". Eftersom fältet är
+Appen tolkar `null` som **okänt** - aldrig som "fri från". Eftersom fältet är
 tomt så ofta betyder det att `OKÄND` visas för nästan allt, och det är avsikten.
 Appen får inte, och gör inte, anspråk på att vara ett allergiskydd.
 
@@ -135,7 +135,7 @@ Avvägningen som gjorts, för en privat app i ett hushåll:
 - **En hämtning per dygn**, inte per inköpslista. Katalogen läses till Postgres
   och appen matchar mot kopian.
 - **Max ett anrop per sekund**, sekventiellt, `take=100`.
-- **Egen user-agent** (`Middagsdepartementet/1.0`) som identifierar appen — det
+- **Egen user-agent** (`Middagsdepartementet/1.0`) som identifierar appen - det
   är billigare att bli kontaktad än blockerad.
 - **Aldrig från webbläsaren.** All hämtning sker i en Edge Function.
 - **Ingen bypass** av inloggning, CAPTCHA eller bot-skydd. Endast publika,
@@ -150,7 +150,7 @@ Skalas appen upp till fler användare bör det här omprövas.
 Det kommer att hända. Två saker begränsar skadan:
 
 **`GroceryProvider`-gränssnittet** (`src/services/grocery/provider.ts`) gör att
-det finns exakt ett ställe att laga — `CityGrossProvider`. Resten av appen vet
+det finns exakt ett ställe att laga - `CityGrossProvider`. Resten av appen vet
 inte var produkterna kommer ifrån.
 
 **Live-testerna** säger till innan användaren märker något:

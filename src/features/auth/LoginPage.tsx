@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 
-import { Button } from '../../components/ui/button.tsx'
+import { Logotyp } from '../../components/Logotyp.tsx'
+import { Button, Textknapp } from '../../components/ui/button.tsx'
 import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Notis } from '../../components/ui/feedback.tsx'
 import { TextField } from '../../components/ui/form.tsx'
@@ -61,6 +62,7 @@ export function LoginPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10">
       <header className="mb-6 text-center">
+        <Logotyp storlek={64} className="mx-auto mb-4" />
         <p className="text-xs font-medium uppercase tracking-widest text-[var(--text-dampad)]">
           Departementet för
         </p>
@@ -105,28 +107,17 @@ export function LoginPage() {
 
           <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
             {lage !== 'losenord' ? (
-              <button type="button" className="underline" onClick={() => setLage('losenord')}>
-                Logga in med lösenord
-              </button>
+              <Textknapp onClick={() => setLage('losenord')}>Logga in med lösenord</Textknapp>
             ) : null}
             {lage !== 'magisk-lank' ? (
-              <button type="button" className="underline" onClick={() => setLage('magisk-lank')}>
-                Skicka inloggningslänk
-              </button>
+              <Textknapp onClick={() => setLage('magisk-lank')}>Skicka inloggningslänk</Textknapp>
             ) : null}
             {lage !== 'aterstall' ? (
-              <button type="button" className="underline" onClick={() => setLage('aterstall')}>
-                Glömt lösenord
-              </button>
+              <Textknapp onClick={() => setLage('aterstall')}>Glömt lösenord</Textknapp>
             ) : null}
           </div>
         </CardBody>
       </Card>
-
-      <p className="mt-6 text-center text-xs text-[var(--text-dampad)]">
-        Konton skapas av departementet. Har du inget konto? Registrera dig i Supabase-projektets
-        Auth-vy, eller be den som satt upp appen om en inbjudan.
-      </p>
     </main>
   )
 }

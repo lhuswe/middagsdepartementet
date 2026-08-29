@@ -1,5 +1,5 @@
 /**
- * Förpackningsoptimering — steget där behovet möter verkligheten.
+ * Förpackningsoptimering - steget där behovet möter verkligheten.
  *
  * Ett recept behöver 750 g köttfärs. Butiken säljer 500 g och 1 kg. Någon måste
  * bestämma vad som faktiskt läggs i vagnen, och göra det så att både överköpet
@@ -7,9 +7,9 @@
  *
  * Två grenar, eftersom City Gross säljer på två sätt:
  *
- * - **Styckvara** (`PCE`) — priset gäller per förpackning. Antalet måste bli ett
+ * - **Styckvara** (`PCE`) - priset gäller per förpackning. Antalet måste bli ett
  *   heltal, och överköp är oundvikligt.
- * - **Lösvikt** (`KGM`) — priset gäller per kilo och mängden är fritt valbar.
+ * - **Lösvikt** (`KGM`) - priset gäller per kilo och mängden är fritt valbar.
  *   Inget överköp uppstår. Originalspecen kände bara till den första grenen.
  */
 
@@ -73,7 +73,7 @@ export interface PackagingResult {
  * krossade tomater"). De kan inte räknas om förrän vi vet hur stor en burk är i
  * just den här butiken, vilket är exakt varför de sparats till nu.
  *
- * Skafferiavdrag gäller inte förpackningsangivna behov — det är en känd
+ * Skafferiavdrag gäller inte förpackningsangivna behov - det är en känd
  * förenkling, dokumenterad i README.
  */
 function resolveRequiredAmount(
@@ -155,7 +155,7 @@ function buildOption(
 /**
  * Väljer bästa förpackningsalternativ bland kandidatprodukterna.
  *
- * Alternativ med orimligt överköp sorteras bort först — men bara om något
+ * Alternativ med orimligt överköp sorteras bort först - men bara om något
  * rimligare finns kvar. Bland de återstående vinner lägsta totalpris, med minsta
  * överköp som skiljedomare. Det ger "1 × 1 kg" framför "2 × 500 g" när kilot är
  * billigare, utan att någonsin föreslå ett 2-kilospaket för ett halvkilobehov.
@@ -205,7 +205,7 @@ export function selectPackaging(
     (option) => Math.max(0, option.overbuy) <= needAmount * MAX_ACCEPTABLE_OVERBUY_RATIO,
   )
 
-  // Förvalet tas bland de rimliga, men *alla* dugliga alternativ följer med —
+  // Förvalet tas bland de rimliga, men *alla* dugliga alternativ följer med -
   // produktväljaren ska kunna erbjuda storpacket åt den som ändå vill ha det.
   const best = reasonable[0] ?? ranked[0] ?? null
 

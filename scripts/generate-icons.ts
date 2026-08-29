@@ -2,7 +2,7 @@
  * Genererar PWA-ikoner utan externa beroenden.
  *
  * Ritar en enkel bild i minnet och skriver den som PNG med Nodes egen zlib.
- * Motivet är en tallrik sedd uppifrån med en gaffel över — igenkännbart i
+ * Motivet är en tallrik sedd uppifrån med en gaffel över - igenkännbart i
  * 48 pixlar, vilket är hela kravet på en hemskärmsikon.
  *
  *   node scripts/generate-icons.ts
@@ -152,7 +152,7 @@ for (const [namn, storlek, options] of filer) {
   process.stdout.write(`${namn} (${storlek}×${storlek})\n`)
 }
 
-// Favicon som SVG — skarp i alla storlekar och en bråkdel av vikten.
+// Favicon som SVG - skarp i alla storlekar och en bråkdel av vikten.
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="rgb(${BAKGRUND.join(',')})"/>
   <circle cx="32" cy="32" r="18" fill="none" stroke="rgb(${FORGRUND.join(',')})" stroke-width="4"/>

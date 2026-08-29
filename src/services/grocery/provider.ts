@@ -2,8 +2,8 @@
  * Abstraktionen mot en dagligvarukedja.
  *
  * City Gross API är odokumenterat och kan ändras utan förvarning. Hela poängen
- * med det här gränssnittet är att den dagen det gör det — eller den dagen appen
- * ska handla någon annanstans — finns det exakt ett ställe att laga.
+ * med det här gränssnittet är att den dagen det gör det - eller den dagen appen
+ * ska handla någon annanstans - finns det exakt ett ställe att laga.
  */
 
 import type { Product } from '../../domain/types.ts'

@@ -333,10 +333,10 @@ export function InkopslistaSida() {
         </>
       )}
 
-      {valjPost && profil ? (
+      {valjPost && profil?.store_number ? (
         <ProduktValjare
           post={valjPost}
-          storeNumber={profil.store_number ?? '3230'}
+          storeNumber={profil.store_number}
           onStang={() => setValjPost(null)}
           onSparad={() => {
             setValjPost(null)
@@ -450,7 +450,7 @@ function PostRad({
 
       <div className="flex shrink-0 flex-col items-end gap-1">
         <span className="text-sm font-medium tabular-nums">
-          {post.line_total !== null ? formatKr(Number(post.line_total)) : '–'}
+          {post.line_total !== null ? formatKr(Number(post.line_total)) : '-'}
         </span>
         {post.is_manual ? (
           <button

@@ -79,7 +79,7 @@ export function Notis({
 /**
  * Tomt läge.
  *
- * Här får den torra myndighetstonen finnas — det är ett ställe där användaren
+ * Här får den torra myndighetstonen finnas - det är ett ställe där användaren
  * har tid att lägga märke till den, och ingenting går sönder om den missas.
  */
 export function TomtLage({

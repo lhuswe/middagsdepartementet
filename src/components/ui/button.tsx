@@ -8,7 +8,7 @@ import { cn } from '../../lib/utils.ts'
  * Knapp.
  *
  * Minsta träffyta är 44 px även i "liten" storlek. Appen används stående i en
- * butiksgång med en kundvagn i vägen — en knapp som kräver precision är en
+ * butiksgång med en kundvagn i vägen - en knapp som kräver precision är en
  * knapp som inte fungerar.
  */
 const button = cva(
@@ -58,4 +58,25 @@ export interface LinkButtonProps extends LinkProps, VariantProps<typeof button> 
  */
 export function LinkButton({ className, variant, size, full, ...props }: LinkButtonProps) {
   return <Link className={cn(button({ variant, size, full }), className)} {...props} />
+}
+
+/**
+ * Knapp som ser ut som en länk.
+ *
+ * Finns för att textlänkar ska bete sig likadant överallt: understrykning,
+ * hover och pekare. Utan gemensam stil blir de klickbara utan att kännas
+ * klickbara, vilket de var på inloggningssidan.
+ */
+export function Textknapp({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'inline-flex min-h-11 items-center rounded px-1 text-sm underline underline-offset-2',
+        'cursor-pointer transition-colors hover:text-[var(--accent)] hover:decoration-2',
+        className,
+      )}
+      {...props}
+    />
+  )
 }

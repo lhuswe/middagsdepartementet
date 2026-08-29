@@ -3,7 +3,7 @@
  *
  * Originalspecen sa "föredra kampanjvaror". Det är naivt på ett sätt som
  * systematiskt underskattar notan: City Gross vanligaste kampanjform är
- * `ItemsTotal` — "3 för 28 kr" — och den gäller *inte* om man köper två.
+ * `ItemsTotal` - "3 för 28 kr" - och den gäller *inte* om man köper två.
  *
  * Grundregeln här är att hellre räkna för högt än för lågt. En okänd
  * kampanjtyp ignoreras och ordinarie pris används. Att komma till kassan och
@@ -39,7 +39,7 @@ export interface PriceOptions {
   at?: Date
   /**
    * Om användaren är medlem i City Gross kundklubb. Medlemskampanjer räknas
-   * bara när detta är sant — annars vore prisuppskattningen fel för icke-medlem.
+   * bara när detta är sant - annars vore prisuppskattningen fel för icke-medlem.
    */
   isMember?: boolean
 }
@@ -184,7 +184,7 @@ function applyPromotion(
     }
 
     default:
-      // Okänd kampanjtyp — räkna ordinarie. Underskatta aldrig.
+      // Okänd kampanjtyp - räkna ordinarie. Underskatta aldrig.
       return { total: ordinaryTotal, ordinaryTotal, savings: 0, promotion: null }
   }
 }

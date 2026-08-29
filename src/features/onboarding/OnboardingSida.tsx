@@ -66,7 +66,7 @@ export function OnboardingSida() {
   const [allergier, setAllergier] = useState<string[]>([])
   const [ogillar, setOgillar] = useState<string[]>([])
   const [budget, setBudget] = useState('')
-  const [butik, setButik] = useState('3230')
+  const [butik, setButik] = useState('')
   const [harHemma, setHarHemma] = useState<string[]>(['salt', 'socker', 'vetemjol', 'rapsolja'])
   const [fel, setFel] = useState<string | null>(null)
 
@@ -89,7 +89,7 @@ export function OnboardingSida() {
 
       await importeraStartrecept(user.id)
 
-      // Skafferiet fylls med generösa mängder — poängen är att slippa se salt
+      // Skafferiet fylls med generösa mängder - poängen är att slippa se salt
       // och mjöl på inköpslistan, inte att hålla exakt lager.
       for (const id of harHemma) {
         const ingredient = INGREDIENTS[id]
@@ -188,7 +188,7 @@ export function OnboardingSida() {
           {steg === 2 ? (
             <div className="space-y-6">
               <Valjare
-                beskrivning="Allergier. Behandlas som hårda villkor — rätter med dessa föreslås aldrig."
+                beskrivning="Allergier. Behandlas som hårda villkor - rätter med dessa föreslås aldrig."
                 alternativ={VANLIGA_ALLERGIER}
                 valda={allergier}
                 onChange={setAllergier}
@@ -223,13 +223,15 @@ export function OnboardingSida() {
           {steg === 4 ? (
             <SelectField
               label="Vilken butik handlar du i?"
-              hint="Priser och lagerstatus hämtas för den valda butiken."
+              hint="Priser och lagerstatus hämtas för den valda butiken. Går att ändra sedan."
               value={butik}
               onChange={(event) => setButik(event.target.value)}
+              required
             >
+              <option value="">Välj butik...</option>
               {(butiker ?? []).map((store) => (
                 <option key={store.store_number} value={store.store_number}>
-                  {store.name} — {store.city}
+                  {store.name} - {store.city}
                 </option>
               ))}
             </SelectField>

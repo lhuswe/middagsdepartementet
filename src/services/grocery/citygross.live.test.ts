@@ -2,7 +2,7 @@
  * Live-test mot riktiga City Gross.
  *
  * Körs ALDRIG i CI och aldrig som del av `npm test`. Syftet är att upptäcka när
- * deras odokumenterade API ändrar format — då slutar de här testerna fungera
+ * deras odokumenterade API ändrar format - då slutar de här testerna fungera
  * långt innan användaren märker något konstigt i inköpslistan.
  *
  *   npm run test:live
@@ -39,7 +39,7 @@ describe.skipIf(!enabled)('City Gross (live)', () => {
     expect(first.price).toBeGreaterThan(0)
     expect(first.storeNumber).toBe(SUNDSVALL)
     // Med butik angiven ska lagerstatus vara känd. Är den null har something
-    // ändrats i hur `store` tolkas — och då blir hela matchningen otillförlitlig.
+    // ändrats i hur `store` tolkas - och då blir hela matchningen otillförlitlig.
     expect(first.inStock).not.toBeNull()
   })
 

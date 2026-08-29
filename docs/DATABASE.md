@@ -27,7 +27,7 @@ Rättigheterna beskrivs i [SECURITY.md](SECURITY.md).
 ### `products` har sammansatt nyckel `(gtin, store_number)`
 
 Priser och lagerstatus skiljer sig mellan butiker, så samma vara finns som flera
-rader. `gtin` (EAN) är den stabila nyckeln över tid — City Gross egna `id`
+rader. `gtin` (EAN) är den stabila nyckeln över tid - City Gross egna `id`
 innehåller ett suffix för säljenhet (`_ST`, `_KG`).
 
 ### `net_content_value` + `net_content_unit` i stället för deras enum
@@ -39,7 +39,7 @@ enheten sparas explicit. Se
 
 ### `in_stock` och `allergens` får vara `null`
 
-I båda fallen betyder `null` **okänt** — inte "slut" respektive "fri från".
+I båda fallen betyder `null` **okänt** - inte "slut" respektive "fri från".
 Skillnaden är hela poängen med hur appen kommunicerar osäkerhet, och den finns
 dokumenterad som kommentar på kolumnerna.
 
@@ -58,7 +58,7 @@ Katalogen genereras ur `src/domain/ingredients.ts` av
 ### `pantry_items.amount` i kanonisk enhet
 
 Gram eller milliliter, aldrig "2 paket". Omräkningen sker i gränssnittet, så att
-skafferiavdraget blir en ren subtraktion. Unikt per `(user_id, ingredient_id)` —
+skafferiavdraget blir en ren subtraktion. Unikt per `(user_id, ingredient_id)` -
 ett hushåll har ett lager av varje vara.
 
 ### `shopping_list_items.product_snapshot`
@@ -90,11 +90,11 @@ City Gross.
 
 ## Automatik
 
-**`touch_updated_at`** — trigger på `stores`, `ingredients`, `profiles`,
+**`touch_updated_at`** - trigger på `stores`, `ingredients`, `profiles`,
 `recipes`, `meal_plans`, `pantry_items`, `shopping_lists`. Kör med låst
 `search_path`.
 
-**`handle_new_user`** — trigger på `auth.users` som skapar profilraden direkt vid
+**`handle_new_user`** - trigger på `auth.users` som skapar profilraden direkt vid
 registrering. Appen behöver därför aldrig hantera fallet "inloggad men
 profillös". `EXECUTE` är indraget från alla roller; den anropas bara av triggern.
 
@@ -117,7 +117,7 @@ Utöver primärnycklarna:
 
 1. Ny fil i `supabase/migrations/` med tidsstämpelprefix.
 2. `supabase db push`
-3. Kör säkerhetslintern — den ska rapportera noll varningar.
+3. Kör säkerhetslintern - den ska rapportera noll varningar.
 4. Uppdatera `src/types/database.ts`.
 
 ### Om `src/types/database.ts`

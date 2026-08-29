@@ -77,7 +77,7 @@ describe('toBase', () => {
     expect(result.confidence).toBe('unknown')
   })
 
-  it('markerar förpackningsenheter som okända — de hanteras separat', () => {
+  it('markerar förpackningsenheter som okända - de hanteras separat', () => {
     for (const unit of ['burk', 'pkt', 'förpackning'] as const) {
       expect(toBase({ value: 1, unit }, ingredient('krossade_tomater')).confidence).toBe(
         'unknown',
@@ -127,7 +127,7 @@ describe('convertBase', () => {
 
 describe('parseDescriptiveSize', () => {
   // netContent.unitOfMeasure är 0 för både "390G" och "1,5L" i City Gross API.
-  // Enumet går inte att lita på — den här funktionen är sanningskällan.
+  // Enumet går inte att lita på - den här funktionen är sanningskällan.
   it.each([
     ['390G', 390, 'g'],
     ['1,17KG', 1170, 'g'],

@@ -4,7 +4,7 @@
  * Sidorna bakom inloggningen går inte att klicka igenom utan ett konto, så det
  * här är nätet under dem: varje sida monteras med attrapper och måste rendera
  * något begripligt utan att kasta. Testerna fångar det vanligaste felet i en
- * app som den här — en komponent som antar att listan har rader, eller att ett
+ * app som den här - en komponent som antar att listan har rader, eller att ett
  * fält aldrig är null.
  *
  * De ersätter inte att någon faktiskt använder appen, och gör inte anspråk på

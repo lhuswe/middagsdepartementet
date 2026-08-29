@@ -6,7 +6,7 @@ on:
   # Gör det möjligt att publicera om utan att pusha något.
   workflow_dispatch:
 
-# Bara en publicering åt gången. Köade körningar avbryts inte mitt i — en halv
+# Bara en publicering åt gången. Köade körningar avbryts inte mitt i - en halv
 # deploy är värre än en sen.
 concurrency:
   group: pages
@@ -68,7 +68,7 @@ jobs:
           [ -z "$VITE_SUPABASE_URL" ] && saknas="$saknas VITE_SUPABASE_URL"
           [ -z "$VITE_SUPABASE_ANON_KEY" ] && saknas="$saknas VITE_SUPABASE_ANON_KEY"
           if [ -n "$saknas" ]; then
-            echo "::error::Saknade repository secrets:$saknas — se docs/DEPLOYMENT.md"
+            echo "::error::Saknade repository secrets:$saknas - se docs/DEPLOYMENT.md"
             exit 1
           fi
           echo "Konfigurationen finns."
@@ -76,7 +76,7 @@ jobs:
       - name: Bygg
         run: npm run build
         env:
-          # Publika värden. Skyddet ligger i RLS, inte i att nyckeln är hemlig —
+          # Publika värden. Skyddet ligger i RLS, inte i att nyckeln är hemlig -
           # men de sätts som repository secrets ändå, så att en fork inte pekar
           # på den här databasen.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -88,7 +88,7 @@ jobs:
           #
           # Kontrollen letar efter nyckel*värden*, inte efter ord. En tidigare
           # version sökte på strängen "sb_secret_" och slog ut bygget på
-          # supabase-js egen prefixkonstant — en larmfunktion som ropar på sig
+          # supabase-js egen prefixkonstant - en larmfunktion som ropar på sig
           # själv är värre än ingen alls.
           fel=0
 

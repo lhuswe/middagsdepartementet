@@ -133,7 +133,7 @@ describe('subtractPantry', () => {
     expect(pasta.fromPantry).toBe(750)
   })
 
-  it('antar att skafferivaror finns hemma — annars fylls listan av en tesked salt', () => {
+  it('antar att skafferivaror finns hemma - annars fylls listan av en tesked salt', () => {
     const result = subtractPantry(needs, [])
     expect(needFor(result, 'salt').toBuy.value).toBe(0)
     expect(needFor(result, 'blandfars').toBuy.value).toBe(1250)

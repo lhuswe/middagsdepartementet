@@ -8,8 +8,8 @@
  *
  * Två sätt att anropa funktionen, båda kontrollerade:
  *
- *   1. Supabase Cron med service role-nyckeln — den schemalagda körningen.
- *   2. En inloggad administratör från "Diagnostik och tillsyn" — knappen som
+ *   1. Supabase Cron med service role-nyckeln - den schemalagda körningen.
+ *   2. En inloggad administratör från "Diagnostik och tillsyn" - knappen som
  *      gör att man kan fylla katalogen första gången utan att hantera hemliga
  *      nycklar för hand.
  *
@@ -35,6 +35,9 @@ const MAX_PAGES_PER_CATEGORY = 40
 
 /** Hur många rader som skrivs till Postgres åt gången. */
 const UPSERT_BATCH = 500
+
+/** Butiksnumret går rakt in i en URL mot City Gross. Bara siffror släpps in. */
+const GILTIGT_BUTIKSNUMMER = /^\d{3,6}$/
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -85,66 +88,38 @@ function toPriceRow(product: Product) {
   }
 }
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
-
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  if (!serviceKey || !supabaseUrl) {
-    return json({ error: 'Funktionen är felkonfigurerad.' }, 500)
-  }
-
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
-
-  const authHeader = request.headers.get('Authorization') ?? ''
-  const token = authHeader.replace(/^Bearer\s+/i, '')
-  if (!token) return json({ error: 'Otillåten.' }, 401)
-
-  // Cron kommer med service role-nyckeln. Allt annat måste vara en admin.
-  let arCron = token === serviceKey
-
-  if (!arCron) {
-    const { data: userData, error: userError } = await admin.auth.getUser(token)
-    if (userError || !userData.user) return json({ error: 'Otillåten.' }, 401)
-
-    const { data: profil } = await admin
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', userData.user.id)
-      .maybeSingle()
-
-    if (!profil?.is_admin) return json({ error: 'Behörighet saknas.' }, 403)
-  }
-
-  let storeNumber = Deno.env.get('CITYGROSS_STORE_NUMBER') ?? '3230'
-  if (!arCron) {
-    try {
-      const body = (await request.json()) as { storeNumber?: unknown }
-      // Bara siffror — butiksnumret går rakt in i en URL mot City Gross.
-      if (typeof body.storeNumber === 'string' && /^\d{3,6}$/.test(body.storeNumber)) {
-        storeNumber = body.storeNumber
-      }
-    } catch {
-      // Ingen kropp skickad. Använd standardbutiken.
-    }
-  }
-
+/**
+ * Hämtar en butiks hela sortiment och skriver in det i katalogen.
+ *
+ * En trasig kategori fäller inte körningen. Den loggas och arbetet fortsätter,
+ * eftersom halvfärsk data slår ingen data alls.
+ */
+async function synkaButik(
+  admin: ReturnType<typeof createClient>,
+  storeNumber: string,
+): Promise<ButiksResultat> {
   const { data: run, error: runError } = await admin
     .from('sync_runs')
     .insert({ store_number: storeNumber })
     .select('id')
     .single()
 
-  if (runError) return json({ error: runError.message }, 500)
+  if (runError) {
+    return {
+      storeNumber,
+      status: 'failed',
+      categoriesProcessed: 0,
+      productsUpserted: 0,
+      failures: [runError.message],
+    }
+  }
+
+  const provider = new CityGrossProvider({ minRequestIntervalMs: 1000 })
+  const categories = [...FOOD_DEPARTMENT_IDS, ...PROMOTION_CATEGORY_IDS]
 
   let categoriesProcessed = 0
   let productsUpserted = 0
   const failures: string[] = []
-
-  // Kampanjkategorierna läses också, eftersom de innehåller varor som inte
-  // nödvändigtvis dyker upp i avdelningslistningarna.
-  const categories = [...FOOD_DEPARTMENT_IDS, ...PROMOTION_CATEGORY_IDS]
-  const provider = new CityGrossProvider({ minRequestIntervalMs: 1000 })
 
   try {
     for (const categoryId of categories) {
@@ -159,12 +134,9 @@ Deno.serve(async (request) => {
           })
 
           for (const product of products) collected.set(product.gtin, product)
-
           if (products.length === 0 || (page + 1) * PAGE_SIZE >= totalCount) break
         }
       } catch (error) {
-        // En trasig kategori får inte fälla hela synken. Den loggas och
-        // körningen fortsätter — halvfärsk data slår ingen data alls.
         failures.push(`Kategori ${categoryId}: ${(error as Error).message}`)
         continue
       }
@@ -190,33 +162,128 @@ Deno.serve(async (request) => {
 
       categoriesProcessed += 1
     }
-
-    const status = failures.length === 0 ? 'success' : 'failed'
-    await admin
-      .from('sync_runs')
-      .update({
-        finished_at: new Date().toISOString(),
-        status,
-        categories_processed: categoriesProcessed,
-        products_upserted: productsUpserted,
-        error_message: failures.length > 0 ? failures.join('\n') : null,
-      })
-      .eq('id', run.id)
-
-    return json({ status, storeNumber, categoriesProcessed, productsUpserted, failures })
   } catch (error) {
-    const message = (error as Error).message
-    await admin
-      .from('sync_runs')
-      .update({
-        finished_at: new Date().toISOString(),
-        status: 'failed',
-        categories_processed: categoriesProcessed,
-        products_upserted: productsUpserted,
-        error_message: message,
-      })
-      .eq('id', run.id)
-
-    return json({ error: message }, 500)
+    failures.push((error as Error).message)
   }
+
+  const status = failures.length === 0 ? 'success' : 'failed'
+
+  await admin
+    .from('sync_runs')
+    .update({
+      finished_at: new Date().toISOString(),
+      status,
+      categories_processed: categoriesProcessed,
+      products_upserted: productsUpserted,
+      error_message: failures.length > 0 ? failures.join('\n') : null,
+    })
+    .eq('id', (run as { id: string }).id)
+
+  return { storeNumber, status, categoriesProcessed, productsUpserted, failures }
+}
+
+interface ButiksResultat {
+  storeNumber: string
+  status: string
+  categoriesProcessed: number
+  productsUpserted: number
+  failures: string[]
+}
+
+/**
+ * Avgör vilka butiker som ska hämtas.
+ *
+ * En administratör som trycker på knappen anger sin butik. Cron anger ingen,
+ * och då hämtas de butiker som faktiskt förekommer i någons profil. Tidigare
+ * hämtades alltid en fast butik, vilket innebar att en användare i en annan
+ * stad fick en inköpslista helt utan priser utan att någon märkte det.
+ */
+async function valjButiker(
+  admin: ReturnType<typeof createClient>,
+  begard: string | null,
+): Promise<string[]> {
+  if (begard) return [begard]
+
+  const konfigurerad = Deno.env.get('CITYGROSS_STORE_NUMBER')
+  if (konfigurerad && GILTIGT_BUTIKSNUMMER.test(konfigurerad)) return [konfigurerad]
+
+  const { data } = await admin
+    .from('profiles')
+    .select('store_number')
+    .not('store_number', 'is', null)
+
+  const nummer = (data ?? [])
+    .map((rad) => (rad as { store_number: string | null }).store_number)
+    .filter((nr): nr is string => typeof nr === 'string' && GILTIGT_BUTIKSNUMMER.test(nr))
+
+  return [...new Set(nummer)]
+}
+
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+  if (!serviceKey || !supabaseUrl) return json({ error: 'Funktionen är felkonfigurerad.' }, 500)
+
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+
+  const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) return json({ error: 'Otillåten.' }, 401)
+
+  // Cron kommer med service role-nyckeln. Allt annat måste vara en admin.
+  const arCron = token === serviceKey
+
+  if (!arCron) {
+    const { data: userData, error: userError } = await admin.auth.getUser(token)
+    if (userError || !userData.user) return json({ error: 'Otillåten.' }, 401)
+
+    const { data: profil } = await admin
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userData.user.id)
+      .maybeSingle()
+
+    if (!(profil as { is_admin?: boolean } | null)?.is_admin) {
+      return json({ error: 'Behörighet saknas.' }, 403)
+    }
+  }
+
+  let begard: string | null = null
+  try {
+    const body = (await request.json()) as { storeNumber?: unknown }
+    // Bara siffror: butiksnumret går rakt in i en URL mot City Gross.
+    if (typeof body.storeNumber === 'string' && GILTIGT_BUTIKSNUMMER.test(body.storeNumber)) {
+      begard = body.storeNumber
+    }
+  } catch {
+    // Ingen kropp skickad.
+  }
+
+  const butiker = await valjButiker(admin, begard)
+  if (butiker.length === 0) {
+    return json(
+      {
+        error:
+          'Ingen butik att hämta. Ange storeNumber, sätt CITYGROSS_STORE_NUMBER, eller välj butik i en profil.',
+      },
+      400,
+    )
+  }
+
+  const resultat: ButiksResultat[] = []
+  for (const storeNumber of butiker) {
+    resultat.push(await synkaButik(admin, storeNumber))
+  }
+
+  return json({
+    status: resultat.every((rad) => rad.status === 'success') ? 'success' : 'failed',
+    butiker: butiker.length,
+    productsUpserted: resultat.reduce((summa, rad) => summa + rad.productsUpserted, 0),
+    // Kvar för adminsidan, som arbetar med en butik i taget.
+    storeNumber: butiker[0],
+    categoriesProcessed: resultat[0]?.categoriesProcessed ?? 0,
+    failures: resultat.flatMap((rad) => rad.failures),
+    perButik: resultat,
+  })
 })

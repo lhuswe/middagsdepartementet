@@ -55,7 +55,7 @@ describe('startrecepten', () => {
   /**
    * Varje mängd måste gå att räkna om till en köpbar enhet. En ingrediens som
    * anges i "st" utan styckvikt blir en post på inköpslistan som ingen kan
-   * handla — det är precis det felet originalspecen byggde in.
+   * handla - det är precis det felet originalspecen byggde in.
    */
   it('har mängder som går att räkna om till gram eller milliliter', () => {
     const olosliga: string[] = []

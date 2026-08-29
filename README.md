@@ -8,7 +8,7 @@ verkliga priser** från City Gross.
 
 Skillnaden mot en vanlig matsedelsapp är sista steget. En lista som säger
 "potatis, 1 kg" hjälper inte i butiken. Den här appen säger *"Potatis Mjölig,
-0,9 kg lösvikt, 12,55 kr"* — och vet skillnaden mellan att köpa 2 × 500 g och
+0,9 kg lösvikt, 12,55 kr"* - och vet skillnaden mellan att köpa 2 × 500 g och
 1 × 1 kg.
 
 ---
@@ -17,7 +17,7 @@ Skillnaden mot en vanlig matsedelsapp är sista steget. En lista som säger
 
 | | |
 |---|---|
-| **Veckoplanerare** | Genererar en matsedel ur receptsamlingen med hänsyn till tillagningstid, allergier, vad ni inte tycker om, och vad ni åt förra veckan. Regelbaserad — samma frö ger samma plan. |
+| **Veckoplanerare** | Genererar en matsedel ur receptsamlingen med hänsyn till tillagningstid, allergier, vad ni inte tycker om, och vad ni åt förra veckan. Regelbaserad - samma frö ger samma plan. |
 | **Inköpslista** | Skalar recepten till rätt antal portioner, slår ihop ingredienser, drar av skafferiet, matchar mot City Gross sortiment, väljer förpackning och räknar pris. |
 | **Handlingsläge** | Stora kryssrutor, kryssade varor sjunker till botten, "visa bara kvarvarande", egna rader. Byggt för att användas med en hand. |
 | **Skafferi** | Det som finns hemma dras av innan produkterna väljs. |
@@ -82,7 +82,7 @@ cp .env.example .env.local
 ```
 
 Fyll i `VITE_SUPABASE_URL` och `VITE_SUPABASE_ANON_KEY` från Supabase-panelen
-under **Project Settings → API**. Båda är publika värden — skyddet ligger i RLS.
+under **Project Settings → API**. Båda är publika värden - skyddet ligger i RLS.
 
 ### 6. Skapa ditt konto
 
@@ -150,7 +150,7 @@ npm run seed:generate    # genererar ingrediens-seed ur src/domain/ingredients.t
 ```
 src/features/   gränssnitt
 src/services/   datalager mot Supabase och City Gross
-src/domain/     ren TypeScript — all matte, inga beroenden
+src/domain/     ren TypeScript - all matte, inga beroenden
 supabase/       migrationer och Edge Functions
 ```
 

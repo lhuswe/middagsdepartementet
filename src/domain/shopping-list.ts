@@ -1,5 +1,5 @@
 /**
- * Inköpslistan — pipelinen som binder ihop domänen.
+ * Inköpslistan - pipelinen som binder ihop domänen.
  *
  * Recept → skalning → aggregering → skafferiavdrag → matchning →
  * förpackningsoptimering → pris → kategorisering.
@@ -11,7 +11,7 @@
  *    som utger sig för att vara komplett är värre än ingen uppskattning.
  * 2. **Allergier är hårda villkor.** Saknas allergiinformation blir svaret
  *    `unknown`, aldrig "fri från". City Gross fyller sällan i fältet, så det
- *    här inträffar ofta — och måste synas.
+ *    här inträffar ofta - och måste synas.
  */
 
 import {
@@ -37,7 +37,7 @@ import { formatQuantity } from './units.ts'
 export type ItemStatus =
   /** Produkt vald, mängd och pris klara. */
   | 'ready'
-  /** Flera produkter passar — användaren måste välja. */
+  /** Flera produkter passar - användaren måste välja. */
   | 'needs-choice'
   /** Ingen tillgänglig produkt hittades. */
   | 'unavailable'
@@ -105,8 +105,8 @@ export interface BuildOptions extends PriceOptions {
 /**
  * Avgör om en produkt är förenlig med användarens allergier.
  *
- * Returnerar `unknown` så snart informationen saknas. Det inträffar ofta —
- * City Gross allergifält är tomt för de allra flesta varor — och det är hela
+ * Returnerar `unknown` så snart informationen saknas. Det inträffar ofta -
+ * City Gross allergifält är tomt för de allra flesta varor - och det är hela
  * poängen: appen får aldrig påstå att något är säkert som den inte vet.
  */
 export function checkAllergens(product: Product, allergies: string[]): AllergyFlag {
@@ -133,7 +133,7 @@ function buildItem(
   }
   if (need.toBuy.confidence === 'estimated' && need.toBuy.range) {
     warnings.push(
-      `Uppskattad mängd — någonstans mellan ${formatQuantity(need.toBuy.range.min, need.toBuy.unit)} och ${formatQuantity(need.toBuy.range.max, need.toBuy.unit)}.`,
+      `Uppskattad mängd - någonstans mellan ${formatQuantity(need.toBuy.range.min, need.toBuy.unit)} och ${formatQuantity(need.toBuy.range.max, need.toBuy.unit)}.`,
     )
   }
 
@@ -171,7 +171,7 @@ function buildItem(
     }
   }
 
-  // Förpackningsvalet görs bland alla dugliga kandidater, inte bara vinnaren —
+  // Förpackningsvalet görs bland alla dugliga kandidater, inte bara vinnaren -
   // det är där jämförelsen mellan 500 g och 1 kg faktiskt hör hemma. Vid ett
   // sparat val respekteras dock användarens produkt.
   const candidates =
@@ -200,7 +200,7 @@ function buildItem(
   if (allergy === 'contains') {
     warnings.push('Produkten anger en allergen du har registrerat.')
   } else if (allergy === 'unknown') {
-    warnings.push('Allergiinformation saknas för produkten — kontrollera förpackningen.')
+    warnings.push('Allergiinformation saknas för produkten - kontrollera förpackningen.')
   }
 
   if (packaging.best.price.promotionUnmet && packaging.best.price.note) {

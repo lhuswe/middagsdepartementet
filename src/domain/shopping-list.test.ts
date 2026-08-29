@@ -144,7 +144,7 @@ describe('checkAllergens', () => {
   const medInfo = makeProduct({ name: 'Pasta', allergens: ['Gluten', 'Ägg'] })
 
   // City Gross allergifält är tomt för de allra flesta varor. Regeln måste
-  // därför vara att tystnad betyder okänt — aldrig "fri från".
+  // därför vara att tystnad betyder okänt - aldrig "fri från".
   it('säger unknown när information saknas, aldrig "fri från"', () => {
     expect(checkAllergens(utanInfo, ['gluten'])).toBe('unknown')
     expect(checkAllergens(makeProduct({ name: 'X', allergens: [] }), ['gluten'])).toBe('unknown')
@@ -164,7 +164,7 @@ describe('checkAllergens', () => {
   })
 })
 
-describe('buildShoppingList — allergier', () => {
+describe('buildShoppingList - allergier', () => {
   it('flaggar okänd allergiinformation i stället för att tiga', () => {
     const list = buildShoppingList(vecka, [], lookup, { allergies: ['gluten'] })
     const pasta = list.groups

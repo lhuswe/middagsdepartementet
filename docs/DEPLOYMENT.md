@@ -79,7 +79,7 @@ Kör säkerhetslintern efteråt. Den ska rapportera noll varningar.
 - **Redirect URLs**: samma adress, plus `http://localhost:5173/`
 
 Appen använder PKCE. Sessionen kommer tillbaka som `?code=` i query-strängen,
-inte i URL-fragmentet — det senare hade krockat med routingen och betett sig
+inte i URL-fragmentet - det senare hade krockat med routingen och betett sig
 olika lokalt och i produktion.
 
 ---
@@ -109,7 +109,7 @@ supabase secrets set CITYGROSS_STORE_NUMBER=3230
 Utan produktdata kan inköpslistan inte prissättas. Logga in, gå till
 **Diagnostik och tillsyn** och tryck **Kör inhämtning nu**.
 
-Körningen tar flera minuter — en kategori i taget med en sekunds paus mellan
+Körningen tar flera minuter - en kategori i taget med en sekunds paus mellan
 anropen, medvetet beskedligt mot City Gross. Resultatet syns i körningslistan.
 
 Sidan kräver `profiles.is_admin`:
@@ -137,7 +137,7 @@ Lägg service role-nyckeln i Vault i stället för i klartext i cron-jobbet:
 select vault.create_secret('DIN_SERVICE_ROLE_KEY', 'service_role_key');
 ```
 
-Schemalägg 03:15 varje natt — utanför både City Gross trafiktoppar och den tid
+Schemalägg 03:15 varje natt - utanför både City Gross trafiktoppar och den tid
 någon planerar sin vecka:
 
 ```sql

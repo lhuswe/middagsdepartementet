@@ -7,7 +7,7 @@ const SYNCED_AT = '2026-08-28T03:00:00.000Z'
 
 /**
  * Verkliga svarsutdrag från www.citygross.se, hämtade 2026-08-28. Testerna kör
- * mot dem i stället för mot påhittade former — det är det enda sättet att
+ * mot dem i stället för mot påhittade former - det är det enda sättet att
  * upptäcka att adaptern gör fel antaganden om deras format.
  */
 const RAW_KROSSADE_TOMATER = {
@@ -73,7 +73,7 @@ const RAW_TOMATER_KVIST = {
   },
 }
 
-/** Mjölk i liter — testar att gram/milliliter inte blandas ihop. */
+/** Mjölk i liter - testar att gram/milliliter inte blandas ihop. */
 const RAW_MELLANMJOLK = {
   id: '101233933_ST',
   gtin: '7340083443893',
@@ -120,7 +120,7 @@ describe('mapProduct', () => {
     expect(product.price).toBe(36.95)
   })
 
-  // unitOfMeasure är 0 för både "390G" och "1,5L". Enumet är oanvändbart —
+  // unitOfMeasure är 0 för både "390G" och "1,5L". Enumet är oanvändbart -
   // det är descriptiveSize som avgör.
   it('skiljer liter från gram trots att enum-fältet är identiskt', () => {
     const mjolk = mapProduct(RAW_MELLANMJOLK, '3230', SYNCED_AT)!

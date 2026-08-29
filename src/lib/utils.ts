@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]): string {
 
 /** Kronor på svenskt vis: 1 234,50 kr. */
 export function formatKr(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '– kr'
+  if (value === null || value === undefined || !Number.isFinite(value)) return '- kr'
   return `${value.toLocaleString('sv-SE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -17,7 +17,7 @@ export function formatKr(value: number | null | undefined): string {
 
 /** Kronor utan ören, för summor där precisionen ändå är en uppskattning. */
 export function formatKrRound(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '– kr'
+  if (value === null || value === undefined || !Number.isFinite(value)) return '- kr'
   return `${Math.round(value).toLocaleString('sv-SE')} kr`
 }
 

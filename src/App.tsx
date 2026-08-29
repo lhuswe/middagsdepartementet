@@ -114,7 +114,7 @@ function Rutter() {
 
 /**
  * Innanför inloggningen. Skickar vidare till onboarding tills hushållet är
- * ifyllt — appen kan inte planera mat åt någon vars antal är okänt.
+ * ifyllt - appen kan inte planera mat åt någon vars antal är okänt.
  */
 function SkyddadYta() {
   const { profil, isLoading } = useProfil()

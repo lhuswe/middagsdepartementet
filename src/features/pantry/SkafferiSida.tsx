@@ -148,8 +148,14 @@ export function SkafferiSida() {
               onChange={(event) => setUtgangsdatum(event.target.value)}
             />
 
-            <div className="flex items-end">
-              <Button type="submit" full disabled={spara.isPending}>
+            {/*
+              Knappen har en egen rad i stället för att bottenjusteras bredvid
+              ett fält. Bottenjustering ser rätt ut tills fältet intill får en
+              hjälptext: rutnätsraden växer, och knappen följer med nedåt.
+              Precis det hände här, med 22 pixlars glapp som följd.
+            */}
+            <div className="flex justify-end sm:col-span-2">
+              <Button type="submit" disabled={spara.isPending} className="w-full sm:w-auto sm:px-8">
                 {spara.isPending ? 'Sparar…' : 'Lagerför'}
               </Button>
             </div>

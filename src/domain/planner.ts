@@ -3,12 +3,12 @@
  *
  * Regelbaserad, inte AI-driven. Det är ett medvetet val för V1: uppgiften är
  * "välj sju rätter ur en lista med trettio, utan att upprepa dig, med hänsyn
- * till vad någon tycker illa om" — och det är en sorteringsuppgift, inte en
+ * till vad någon tycker illa om" - och det är en sorteringsuppgift, inte en
  * språkuppgift. Regler ger dessutom samma svar två gånger, går att testa, och
  * kostar ingenting att köra.
  *
  * `AIProvider` byggs vid sidan av och kan ta över urvalet senare. Vad den
- * *aldrig* ska göra är kvantitetsmatten — den bor i `aggregate` och `packaging`
+ * *aldrig* ska göra är kvantitetsmatten - den bor i `aggregate` och `packaging`
  * och ska förbli deterministisk.
  *
  * Urvalet är girigt: välj den bäst poängsatta rätten, lägg till den, poängsätt
@@ -28,7 +28,7 @@ export interface PlanOptions {
   servings: number
   /** Rätter som tar längre tid än så här väljs bort. */
   maxMinutes?: number
-  /** Ingredienser hushållet inte vill ha — ogillat eller allergener. */
+  /** Ingredienser hushållet inte vill ha - ogillat eller allergener. */
   avoidIngredientIds?: string[]
   /** Minst en av dessa taggar måste finnas, om listan inte är tom. */
   requiredTags?: string[]
@@ -90,7 +90,7 @@ export function kandidater(recipes: Recipe[], options: PlanOptions): Recipe[] {
     if (required.length > 0 && !recipe.tags.some((tag) => required.includes(tag))) return false
 
     // En rätt utesluts om en oönskad ingrediens är obligatorisk i den. Valfria
-    // ingredienser räknas inte — de går att hoppa över.
+    // ingredienser räknas inte - de går att hoppa över.
     const traffar = recipe.ingredients.some(
       (item) => !item.optional && avoid.has(item.ingredientId),
     )
@@ -138,7 +138,7 @@ function poangsatt(
 
   const fonster = REPETITION_WINDOW[options.repetitionAvoidance ?? 'medium']
 
-  // Redan vald den här veckan — nästan alltid fel.
+  // Redan vald den här veckan - nästan alltid fel.
   if (valda.some((valdRecipe) => valdRecipe.id === recipe.id)) {
     poang -= 100
   }
@@ -199,7 +199,7 @@ function poangsatt(
 
 /**
  * Ingredienser som nästan alla recept delar. De ska inte räknas som
- * "återanvändning" — annars får varje rätt med lök och salt bonus.
+ * "återanvändning" - annars får varje rätt med lök och salt bonus.
  */
 const STAPLE_LIKE = new Set([
   'salt',

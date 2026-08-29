@@ -8,7 +8,7 @@ const fieldBase =
   'disabled:opacity-60 disabled:cursor-not-allowed'
 
 /**
- * Fält med etikett. Etiketten är alltid kopplad till kontrollen via id —
+ * Fält med etikett. Etiketten är alltid kopplad till kontrollen via id -
  * placeholder som enda ledtext är otillgängligt och försvinner när man skriver.
  */
 export function Field({

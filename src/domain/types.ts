@@ -1,5 +1,5 @@
 /**
- * Domäntyper. Ren TypeScript — inga beroenden på React, Supabase eller nätverk.
+ * Domäntyper. Ren TypeScript - inga beroenden på React, Supabase eller nätverk.
  *
  * Hela poängen med det här lagret är att all matte som avgör vad som hamnar i
  * kundvagnen går att testa utan att starta något. Om en siffra är fel ska ett
@@ -34,9 +34,9 @@ export type BaseUnit = 'g' | 'ml' | 'st'
 /**
  * Hur säker en omräkning är.
  *
- * - `exact`     — samma dimension, ren faktor (kg→g, dl→ml)
- * - `estimated` — korsad dimension via styckvikt eller densitet (1 lök → 110 g)
- * - `unknown`   — data saknas, omräkningen gick inte att göra
+ * - `exact`     - samma dimension, ren faktor (kg→g, dl→ml)
+ * - `estimated` - korsad dimension via styckvikt eller densitet (1 lök → 110 g)
+ * - `unknown`   - data saknas, omräkningen gick inte att göra
  *
  * `estimated` och `unknown` måste synas i gränssnittet. Appen får gissa, men
  * aldrig gissa tyst.
@@ -60,7 +60,7 @@ export interface BaseQuantity {
 
 /**
  * En ingrediens i den normaliserade katalogen. `canonicalUnit` avgör vilken
- * basenhet ingrediensen aggregeras i — potatis i gram, grädde i milliliter.
+ * basenhet ingrediensen aggregeras i - potatis i gram, grädde i milliliter.
  */
 export interface Ingredient {
   id: string
@@ -154,9 +154,9 @@ export interface Recipe {
 
 /** Hur en vara säljs. Avgör vilken gren av förpackningsmatten som gäller. */
 export type SellingUnit =
-  /** Styckvara — priset gäller per förpackning. */
+  /** Styckvara - priset gäller per förpackning. */
   | 'PCE'
-  /** Lösvikt — priset gäller per kilo, mängden är fritt valbar. */
+  /** Lösvikt - priset gäller per kilo, mängden är fritt valbar. */
   | 'KGM'
 
 export interface Promotion {
@@ -178,7 +178,7 @@ export interface Promotion {
 
 /** En produkt hämtad från City Gross, normaliserad till appens form. */
 export interface Product {
-  /** EAN — stabil nyckel över tid. */
+  /** EAN - stabil nyckel över tid. */
   gtin: string
   /** City Gross eget id, används för produktlänkar. */
   externalId: string
@@ -200,7 +200,7 @@ export interface Product {
   comparativePrice: number | null
   comparativePriceUnit: string | null
   promotions: Promotion[]
-  /** `null` när butik inte angavs i anropet — då är lagerstatus okänd. */
+  /** `null` när butik inte angavs i anropet - då är lagerstatus okänd. */
   inStock: boolean | null
   imageUrl: string | null
   productUrl: string | null

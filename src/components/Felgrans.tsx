@@ -8,7 +8,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
  * göra åt det. Här visas i stället vad som gick fel, rakt formulerat, med en
  * väg vidare.
  *
- * Måste vara en klasskomponent — React har ingen hook-motsvarighet.
+ * Måste vara en klasskomponent - React har ingen hook-motsvarighet.
  */
 interface Props {
   children: ReactNode

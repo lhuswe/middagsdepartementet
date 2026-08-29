@@ -1,7 +1,7 @@
 /**
  * Direktsökning mot City Gross.
  *
- * Appen söker i första hand i den synkade katalogen — den är snabbare, fungerar
+ * Appen söker i första hand i den synkade katalogen - den är snabbare, fungerar
  * med dålig täckning och belastar ingen annans servrar. Den här funktionen
  * finns för fallen där kopian inte räcker: en vara som tillkommit sedan senaste
  * nattsynken, eller en produktväljare som inte hittar något rimligt.
@@ -77,7 +77,7 @@ Deno.serve(async (request) => {
   if (userError || !userData.user) return json({ error: 'Otillåten.' }, 401)
 
   let query = ''
-  let storeNumber = '3230'
+  let storeNumber = ''
   try {
     const body = (await request.json()) as { query?: unknown; storeNumber?: unknown }
     if (typeof body.query === 'string') query = body.query.trim().slice(0, 100)
@@ -88,6 +88,10 @@ Deno.serve(async (request) => {
   } catch {
     return json({ error: 'Ogiltig förfrågan.' }, 400)
   }
+
+  // Ingen standardbutik: priser är butiksspecifika, och en gissning ger
+  // sortiment från fel stad.
+  if (!storeNumber) return json({ error: 'storeNumber saknas.' }, 400)
 
   if (query.length < 2) return json({ products: [] })
 
@@ -105,7 +109,7 @@ Deno.serve(async (request) => {
 
     return json({ products })
   } catch (error) {
-    // Ett misslyckat direktanrop är inte kritiskt — appen har den synkade
+    // Ett misslyckat direktanrop är inte kritiskt - appen har den synkade
     // katalogen att falla tillbaka på. Felet rapporteras rakt, utan gissningar.
     return json({ error: (error as Error).message, products: [] }, 502)
   }

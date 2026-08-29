@@ -2,7 +2,7 @@
  * City Gross-adapter.
  *
  * Endpoints och fältformat är kartlagda mot www.citygross.se 2026-08-28. Det
- * finns ingen publik dokumentation — se `docs/CITYGROSS-INTEGRATION.md` för hur
+ * finns ingen publik dokumentation - se `docs/CITYGROSS-INTEGRATION.md` för hur
  * kartläggningen gjordes och vad som gäller om formatet ändras.
  *
  *   GET /api/v1/sites?siteTypeId=3                          butikslista
@@ -11,7 +11,7 @@
  *   GET /api/v1/Loop54/category/{id}/products?store=        kategorilistning
  *
  * `store` ska vara butiksnumret ("3230" = Sundsvall). Utan det returneras
- * rikspriser och `stockStatus: null` — alltså okänd lagerstatus, vilket är
+ * rikspriser och `stockStatus: null` - alltså okänd lagerstatus, vilket är
  * precis den sortens tysta felkälla appen inte får bygga på.
  *
  * Koden här körs i Supabase Edge Functions, aldrig i webbläsaren.
@@ -126,7 +126,7 @@ function toSellingUnit(value: number | undefined): SellingUnit {
 }
 
 /**
- * Allergener. `null` betyder *okänt*, inte *inga* — fältet är tomt för många
+ * Allergener. `null` betyder *okänt*, inte *inga* - fältet är tomt för många
  * varor, och skillnaden är hela poängen med allergihanteringen.
  */
 function toAllergens(raw: RawProduct): string[] | null {
@@ -160,7 +160,7 @@ function toPromotions(raw: RawPromotion[] | undefined): Promotion[] {
 /**
  * Förpackningsstorlek.
  *
- * `netContent.unitOfMeasure` är 0 för *både* gram och milliliter — "390G" och
+ * `netContent.unitOfMeasure` är 0 för *både* gram och milliliter - "390G" och
  * "1,5L" har båda 0. Enumet går alltså inte att lita på. `descriptiveSize` är
  * entydigt och används som primärkälla; netContent.value används bara för att
  * fylla i när texten saknas.
@@ -244,7 +244,7 @@ export class CityGrossProvider implements GroceryProvider {
 
   constructor(options: CityGrossOptions = {}) {
     this.fetchImpl = options.fetchImpl ?? fetch
-    // Header-värden måste vara latin-1. Ett å här ger 400 från deras edge —
+    // Header-värden måste vara latin-1. Ett å här ger 400 från deras edge -
     // verifierat, och en förvånansvärt svårhittad bugg. Håll strängen ASCII.
     this.userAgent = assertAscii(
       options.userAgent ?? 'Middagsdepartementet/1.0 (private household app)',
@@ -342,7 +342,7 @@ export class CityGrossProvider implements GroceryProvider {
     const raw = await this.getJson<{ data?: { tree?: RawTreeNode | RawTreeNode[] } }>(
       '/api/v1/navigation',
     )
-    // `data.tree` är en enda rotnod vars children är sajtens huvudsektioner —
+    // `data.tree` är en enda rotnod vars children är sajtens huvudsektioner -
     // inte en array, vilket är lätt att anta fel.
     const tree = raw.data?.tree
     const sections = Array.isArray(tree) ? tree : (tree?.children ?? [])

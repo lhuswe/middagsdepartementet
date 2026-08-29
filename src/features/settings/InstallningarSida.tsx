@@ -22,7 +22,7 @@ export function InstallningarSida() {
   // Formuläret ligger i en egen komponent som får profilen som prop, så att
   // utkastet kan initieras direkt i useState. Att i stället fylla i det från en
   // effekt hade orsakat en extra rendering vid varje laddning, utan att lösa
-  // något — profilen är inget externt system som behöver synkroniseras.
+  // något - profilen är inget externt system som behöver synkroniseras.
   return <InstallningarFormular profil={profil} key={profil.id} />
 }
 
@@ -38,7 +38,7 @@ function InstallningarFormular({ profil }: { profil: ProfileRow }) {
     servings_per_meal: profil.servings_per_meal,
     max_cooking_minutes: profil.max_cooking_minutes ?? 45,
     weekly_budget: profil.weekly_budget ?? '',
-    store_number: profil.store_number ?? '3230',
+    store_number: profil.store_number ?? '',
     allergies: profil.allergies,
     dislikes: profil.dislikes,
     is_member: profil.is_member,
@@ -133,19 +133,22 @@ function InstallningarFormular({ profil }: { profil: ProfileRow }) {
 
             <SelectField
               label="Butik"
+              hint="Priser och lagerstatus hämtas för den valda butiken."
               value={String(utkast.store_number)}
               onChange={(event) => satt('store_number', event.target.value)}
+              required
             >
+              <option value="">Välj butik...</option>
               {(butiker ?? []).map((store) => (
                 <option key={store.store_number} value={store.store_number}>
-                  {store.name} — {store.city}
+                  {store.name} - {store.city}
                 </option>
               ))}
             </SelectField>
 
             <Kryssrad
               etikett="Jag är medlem i kundklubben"
-              hint="Medlemspriser räknas bara in när det här är ikryssat — annars blir uppskattningen för låg."
+              hint="Medlemspriser räknas bara in när det här är ikryssat - annars blir uppskattningen för låg."
               vardet={Boolean(utkast.is_member)}
               onChange={(varde) => satt('is_member', varde)}
             />
@@ -169,9 +172,9 @@ function InstallningarFormular({ profil }: { profil: ProfileRow }) {
               value={String(utkast.repetition_avoidance)}
               onChange={(event) => satt('repetition_avoidance', event.target.value)}
             >
-              <option value="low">Låg — en vecka</option>
-              <option value="medium">Medel — tre veckor</option>
-              <option value="high">Hög — sex veckor</option>
+              <option value="low">Låg - en vecka</option>
+              <option value="medium">Medel - tre veckor</option>
+              <option value="high">Hög - sex veckor</option>
             </SelectField>
 
             <MarkeraFalt
@@ -208,7 +211,7 @@ function InstallningarFormular({ profil }: { profil: ProfileRow }) {
                 servings_per_meal: Number(utkast.servings_per_meal),
                 max_cooking_minutes: Number(utkast.max_cooking_minutes),
                 weekly_budget: utkast.weekly_budget === '' ? null : Number(utkast.weekly_budget),
-                store_number: String(utkast.store_number),
+                store_number: String(utkast.store_number) || null,
                 allergies: (utkast.allergies as string[]) ?? [],
                 dislikes: (utkast.dislikes as string[]) ?? [],
                 is_member: Boolean(utkast.is_member),

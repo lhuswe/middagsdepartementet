@@ -40,7 +40,8 @@ export function OversiktSida() {
 
   const synk = useQuery({
     queryKey: ['senastesynk', butik],
-    queryFn: () => senasteSynk(butik),
+    queryFn: () => senasteSynk(butik!),
+    enabled: Boolean(butik),
     staleTime: 10 * 60_000,
   })
 
@@ -73,7 +74,17 @@ export function OversiktSida() {
         underrubrik={format(new Date(), "EEEE d MMMM", { locale: sv })}
       />
 
-      {synk.data === null && !synk.isLoading ? (
+      {!butik ? (
+        <Notis ton="varning" titel="Ingen butik är vald" className="mb-4">
+          Priser och sortiment är butiksspecifika. Välj butik under{' '}
+          <Link to="/installningar" className="underline">
+            Inställningar
+          </Link>{' '}
+          för att kunna prissätta inköpslistan.
+        </Notis>
+      ) : null}
+
+      {butik && synk.data === null && !synk.isLoading ? (
         <Notis ton="varning" titel="Sortimentet är inte inläst" className="mb-4">
           Produktkatalogen för butiken är tom, så inköpslistan kan inte prissättas. Kör en synk från{' '}
           <Link to="/admin" className="underline">
@@ -200,7 +211,7 @@ export function OversiktSida() {
                 <ul className="mt-2 space-y-1 text-sm text-[var(--text-dampad)]">
                   {utgar.slice(0, 3).map((rad) => (
                     <li key={rad.id}>
-                      {rad.ingredient_id} — {rad.expires_on}
+                      {rad.ingredient_id} - {rad.expires_on}
                     </li>
                   ))}
                 </ul>

@@ -75,7 +75,7 @@ async function sakerstallPlan(userId: string, weekStart: string): Promise<MealPl
 }
 
 /**
- * Skriver en hel veckoplan. Ersätter befintliga middagar för veckan — det är
+ * Skriver en hel veckoplan. Ersätter befintliga middagar för veckan - det är
  * vad "generera ny matsedel" betyder, och att smyga in dubbletter vore värre.
  */
 export async function sparaVeckoplan(

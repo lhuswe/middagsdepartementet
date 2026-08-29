@@ -7,11 +7,11 @@
  *
  * OBS: typerna deklareras som `type`, inte `interface`. Supabase-klienten
  * kräver att raderna är tilldelningsbara till `Record<string, unknown>`, och ett
- * interface får ingen implicit indexsignatur — då faller hela schemat tillbaka
+ * interface får ingen implicit indexsignatur - då faller hela schemat tillbaka
  * och varje fråga får typen `never`. Ett svårläst fel med en enkel orsak.
  *
  * Namngivningen är databasens (snake_case). Översättningen till domänens
- * camelCase sker i `src/services/`, inte här — det är gränsen mellan lagren.
+ * camelCase sker i `src/services/`, inte här - det är gränsen mellan lagren.
  */
 
 export type ShoppingListItemStatus = 'ready' | 'needs-choice' | 'unavailable' | 'unresolved'

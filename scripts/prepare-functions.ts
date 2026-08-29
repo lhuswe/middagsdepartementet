@@ -3,7 +3,7 @@
  * under respektive funktion, och skriver om importsökvägarna.
  *
  * Bakgrunden: samma matte måste gälla i webbläsaren och på servern. Att skriva
- * den två gånger är ett löfte om att de glider isär — men Deno-bundlingen vill
+ * den två gånger är ett löfte om att de glider isär - men Deno-bundlingen vill
  * ha alla filer under funktionskatalogen. Så: en sanningskälla i `src/`, och en
  * genererad kopia som aldrig redigeras för hand.
  *
@@ -66,7 +66,7 @@ for (const fn of FUNCTIONS) {
     join(target, 'README.md'),
     '# Genererad kod\n\n' +
       'Kopierad av `scripts/prepare-functions.ts` från `src/`. Redigera aldrig\n' +
-      'här — ändringar skrivs över vid nästa körning. Ändra originalet i `src/`.\n',
+      'här - ändringar skrivs över vid nästa körning. Ändra originalet i `src/`.\n',
     'utf8',
   )
 

@@ -1,5 +1,5 @@
 /**
- * Ingredienskatalogen — appens normaliserade ordlista.
+ * Ingredienskatalogen - appens normaliserade ordlista.
  *
  * Två saker gör den värd sin plats:
  *
@@ -10,7 +10,7 @@
  *
  * Styckvikterna är uppskattningar med intervall, inte mätvärden. De är satta
  * för en medelstor vara i svensk dagligvaruhandel och räcker gott för att
- * avgöra hur många förpackningar man behöver — vilket är hela syftet.
+ * avgöra hur många förpackningar man behöver - vilket är hela syftet.
  *
  * Den här filen är också sanningskällan för databasens seed. Se
  * `scripts/generate-seed.ts`.

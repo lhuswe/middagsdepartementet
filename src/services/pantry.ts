@@ -31,7 +31,7 @@ export function tillPantryEntries(rader: PantryItemRow[]): PantryEntry[] {
 
 /**
  * Sparar en skafferipost. Mängden anges i valfri receptenhet och räknas om till
- * kanonisk enhet — annars skulle "3 dl ris" och "250 g ris" inte gå att jämföra.
+ * kanonisk enhet - annars skulle "3 dl ris" och "250 g ris" inte gå att jämföra.
  */
 export async function sparaSkafferipost(
   userId: string,

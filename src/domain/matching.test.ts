@@ -43,7 +43,7 @@ const graddfil = makeProduct({
   price: 19.9,
 })
 
-describe('matchIngredient — specens egna fällor', () => {
+describe('matchIngredient - specens egna fällor', () => {
   // Originalspecen pekade ut båda de här fallen som saker som inte får hända,
   // men bad samtidigt om textlikhetsmatchning, som gör exakt de felen.
   it('matchar mjölk mot mellanmjölk och aldrig mot chokladmjölk', () => {
@@ -64,7 +64,7 @@ describe('matchIngredient — specens egna fällor', () => {
   })
 })
 
-describe('matchIngredient — säkerhetsnivåer', () => {
+describe('matchIngredient - säkerhetsnivåer', () => {
   const tomater400 = makeProduct({
     name: 'Tomater Krossade',
     subtitle: '390G GARANT',

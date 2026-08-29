@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { SidHuvud } from '../../components/Layout.tsx'
+import { SaknarButik } from '../../components/SaknarButik.tsx'
 import { Button } from '../../components/ui/button.tsx'
 import { Card } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
@@ -22,7 +23,8 @@ export function ErbjudandenSida() {
 
   const erbjudanden = useQuery({
     queryKey: ['erbjudanden', butik],
-    queryFn: () => hamtaErbjudanden(butik),
+    queryFn: () => hamtaErbjudanden(butik!),
+    enabled: Boolean(butik),
     staleTime: 30 * 60_000,
   })
 
@@ -51,6 +53,15 @@ export function ErbjudandenSida() {
     }
     return träffar
   }, [erbjudanden.data])
+
+  if (!butik) {
+    return (
+      <>
+        <SidHuvud rubrik="Veckans fynd" />
+        <SaknarButik vad="Kampanjer" />
+      </>
+    )
+  }
 
   if (erbjudanden.isLoading) return <SidLaddning />
 

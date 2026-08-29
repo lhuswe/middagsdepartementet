@@ -1,10 +1,10 @@
 /**
- * Inköpslistor — appens kärnleverans.
+ * Inköpslistor - appens kärnleverans.
  *
  * Genereringen körs i klienten mot den synkade katalogen, inte i en Edge
  * Function. Domänlogiken är ren TypeScript och all data skyddas redan av RLS,
  * så en serverrunda hade bara lagt till latens och ett andra ställe att hålla
- * i synk. City Gross nås fortfarande enbart från servern — via nattsynken.
+ * i synk. City Gross nås fortfarande enbart från servern - via nattsynken.
  *
  * En sparad lista bär med sig en ögonblicksbild av produkt och pris. Utan den
  * skulle nästa nattsynk kunna ändra en lista man redan står och handlar efter.
@@ -68,7 +68,12 @@ export async function genereraInkopslista(
   skafferi: PantryEntry[],
   options: { mealPlanId?: string | null; namn?: string } = {},
 ): Promise<GenereringsResultat> {
-  const storeNumber = profil.store_number ?? '3230'
+  // Ingen fallback: priser är butiksspecifika, och en gissad butik ger
+  // priser från fel stad utan att någon märker det.
+  const storeNumber = profil.store_number
+  if (!storeNumber) {
+    throw new Error('Ingen butik är vald. Välj butik under Inställningar innan du skapar listan.')
+  }
 
   // Vilka ingredienser behöver vi över huvud taget slå upp?
   const behov = needsRequiringPurchase(
@@ -159,7 +164,7 @@ async function sparaLista(
       user_id: userId,
       meal_plan_id: options.mealPlanId ?? null,
       name: options.namn ?? 'Inköpslista',
-      store_number: profil.store_number ?? '3230',
+      store_number: profil.store_number!,
       estimated_total: Math.round(lista.estimatedTotal * 100) / 100,
       items_without_price: lista.itemsWithoutPrice,
       oldest_data_at: lista.oldestDataAt,

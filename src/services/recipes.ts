@@ -1,7 +1,7 @@
 /**
  * Recept.
  *
- * Varje användare äger sina egna recept — även startrecepten, som kopieras in i
+ * Varje användare äger sina egna recept - även startrecepten, som kopieras in i
  * samlingen vid första inloggningen. Det gör dem redigerbara utan att någon
  * annans kopia påverkas, och det håller RLS-modellen enkel: allt i `recipes`
  * har en ägare.
@@ -60,7 +60,7 @@ export async function hamtaRecept1(id: string): Promise<Recipe | null> {
 /**
  * Lägger in startrecepten i användarens samling.
  *
- * Körs en gång, vid onboarding. Är samlingen redan fylld händer ingenting —
+ * Körs en gång, vid onboarding. Är samlingen redan fylld händer ingenting -
  * funktionen ska gå att anropa om utan att skapa dubbletter.
  */
 export async function importeraStartrecept(userId: string): Promise<number> {

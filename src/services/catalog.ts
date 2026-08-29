@@ -46,7 +46,7 @@ export function toProduct(row: ProductRow): Product {
 /**
  * Hämtar kandidatprodukter för en uppsättning ingredienser.
  *
- * Matchningen sker i domänlagret, inte i SQL — här görs bara en bred
+ * Matchningen sker i domänlagret, inte i SQL - här görs bara en bred
  * fritextsökning som drar hem tillräckligt att välja bland. Att lägga
  * matchningsreglerna i databasen hade gjort dem omöjliga att enhetstesta.
  */
@@ -117,7 +117,7 @@ export async function sokProdukter(
   return (data ?? []).map(toProduct)
 }
 
-/** Produkter med aktiv kampanj — underlaget till "Veckans fynd". */
+/** Produkter med aktiv kampanj - underlaget till "Veckans fynd". */
 export async function hamtaErbjudanden(storeNumber: string, limit = 60): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')

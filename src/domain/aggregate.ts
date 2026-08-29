@@ -7,7 +7,7 @@
  * resultatet verkligheten i form av förpackningsstorlekar.
  *
  * Att avrunda tidigt är den klassiska buggen här. "1,5 lök" ska förbli 1,5 lök
- * hela vägen fram till att någon ska köpa faktiska lökar — annars ackumuleras
+ * hela vägen fram till att någon ska köpa faktiska lökar - annars ackumuleras
  * avrundningsfelet över veckans alla recept.
  */
 
@@ -68,7 +68,7 @@ export interface AggregatedNeed {
 
 /**
  * Skalar en receptingrediens till önskat antal portioner.
- * Ingen avrundning — se modulkommentaren.
+ * Ingen avrundning - se modulkommentaren.
  */
 export function scaleIngredient(
   item: RecipeIngredient,
@@ -171,7 +171,7 @@ function addQuantities(a: BaseQuantity, b: BaseQuantity): BaseQuantity {
  * Drar av det som redan finns hemma.
  *
  * Skafferivaror (salt, mjöl, olja) som användaren inte uttryckligen har angett
- * en mängd för antas finnas i tillräcklig mängd och nollställs helt — annars
+ * en mängd för antas finnas i tillräcklig mängd och nollställs helt - annars
  * fylls inköpslistan varje vecka av en tesked salt.
  */
 export function subtractPantry(

@@ -11,7 +11,7 @@ någon annan.
 Två sorters data med helt olika ägarskap. Att blanda ihop dem är det klassiska
 misstaget i en app som den här.
 
-### Referensdata — gemensam
+### Referensdata - gemensam
 
 `stores`, `ingredients`, `ingredient_aliases`, `products`,
 `product_price_history`
@@ -27,7 +27,7 @@ vem som frågar. `service_role` går förbi RLS och är den enda vägen in.
 > rakt av på produktkatalogen hade den regeln tvingat varje hushåll att ha en
 > egen kopia av City Gross sortiment.
 
-### Användardata — privat
+### Användardata - privat
 
 `profiles`, `recipes`, `recipe_ingredients`, `meal_plans`, `meal_plan_items`,
 `pantry_items`, `shopping_lists`, `shopping_list_items`,
@@ -39,7 +39,7 @@ Fyra policyer per tabell (SELECT, INSERT, UPDATE, DELETE), alla mot
 
 **Barntabeller** (`recipe_ingredients`, `meal_plan_items`,
 `shopping_list_items`) har inget eget `user_id`. De ärver ägarskapet via en
-`exists`-kontroll mot förälderns rad — i policyn, inte i frontend.
+`exists`-kontroll mot förälderns rad - i policyn, inte i frontend.
 
 ### Driftdata
 
@@ -59,7 +59,7 @@ och frågade databasen som respektive användare:
 | Recept | 1 | 0 |
 | Receptrader (via förälderpolicy) | 1 | 0 |
 | Profil | 1 | 0 |
-| Delad referensdata | 1 | – |
+| Delad referensdata | 1 | - |
 
 Att köra om den vid schemaändringar är billigt. Använd en transaktion med
 `set local role authenticated` och `set local request.jwt.claims`, och avsluta
@@ -74,7 +74,7 @@ schemaändring.
 
 | Nyckel | Var den finns | Var den aldrig finns |
 |---|---|---|
-| Anon/publishable | `.env.local`, GitHub-secrets, byggd frontend | – |
+| Anon/publishable | `.env.local`, GitHub-secrets, byggd frontend | - |
 | Service role | Supabase Edge Function-miljö | Frontend, repo, byggartefakter |
 
 Anon-nyckeln är **avsedd** att ligga i klienten. Skyddet ligger i RLS, inte i att
@@ -96,7 +96,7 @@ angripare med rättighet att skapa scheman påverka vilken `now()` som anropas.
 `handle_new_user` är `SECURITY DEFINER` och skapar profilrader. Som exponerad
 RPC hade den kunnat anropas av vem som helst via `/rest/v1/rpc/handle_new_user`.
 `EXECUTE` är därför indraget från `public`, `anon` och `authenticated`. Triggern
-påverkas inte — den körs av tabellägaren.
+påverkas inte - den körs av tabellägaren.
 
 ---
 

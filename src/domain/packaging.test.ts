@@ -18,7 +18,7 @@ function needOf(ingredientId: string, grams: number): AggregatedNeed {
   return need
 }
 
-describe('selectPackaging — styckvara', () => {
+describe('selectPackaging - styckvara', () => {
   const halvkilo = makeProduct({ name: 'Blandfärs', descriptiveSize: '500G', price: 45 })
   const helkilo = makeProduct({ name: 'Blandfärs', descriptiveSize: '1KG', price: 82 })
 
@@ -42,7 +42,7 @@ describe('selectPackaging — styckvara', () => {
 
   it('avvisar orimligt överköp även när det är billigast', () => {
     const tvakilo = makeProduct({ name: 'Blandfärs', descriptiveSize: '2KG', price: 60 })
-    // 2 kg kostar 60 kr mot 90 kr för 2 × 500 g — men att köpa 2 kg för ett
+    // 2 kg kostar 60 kr mot 90 kr för 2 × 500 g - men att köpa 2 kg för ett
     // behov på 900 g är över 100 % överköp. Billigast är inte alltid rimligast.
     const result = selectPackaging(needOf('blandfars', 900), [halvkilo, tvakilo])
     expect(result.best?.product.descriptiveSize).toBe('500G')
@@ -83,7 +83,7 @@ describe('selectPackaging — styckvara', () => {
   })
 })
 
-describe('selectPackaging — lösvikt', () => {
+describe('selectPackaging - lösvikt', () => {
   // Grenen originalspecen inte kände till. "Tomater Kvist CA 160G" beställs i
   // antal men betalas per kilo, och då uppstår inget överköp alls.
   const losvikt = makeProduct({
@@ -107,7 +107,7 @@ describe('selectPackaging — lösvikt', () => {
   })
 })
 
-describe('selectPackaging — kampanjer', () => {
+describe('selectPackaging - kampanjer', () => {
   it('låter en uppnådd kampanj avgöra vilken förpackning som vinner', () => {
     const kampanjvara = makeProduct({
       name: 'Krossade tomater',
@@ -146,7 +146,7 @@ describe('selectPackaging — kampanjer', () => {
   })
 })
 
-describe('selectPackaging — förpackningsangivna behov', () => {
+describe('selectPackaging - förpackningsangivna behov', () => {
   it('löser upp "2 burkar" mot butikens faktiska burkstorlek', () => {
     const recipe = makeRecipe(
       { id: 'gryta', name: 'Gryta', servings: 4 },
@@ -161,7 +161,7 @@ describe('selectPackaging — förpackningsangivna behov', () => {
   })
 })
 
-describe('selectPackaging — när det inte går', () => {
+describe('selectPackaging - när det inte går', () => {
   it('säger ifrån när ingen produkt matchade', () => {
     const result = selectPackaging(needOf('blandfars', 500), [])
     expect(result.best).toBeNull()
@@ -181,7 +181,7 @@ describe('selectPackaging — när det inte går', () => {
 })
 
 /**
- * Acceptanstest — hela kedjan från veckoplan till kundvagn.
+ * Acceptanstest - hela kedjan från veckoplan till kundvagn.
  *
  * Bygger på originalspecens räkneexempel, men med korrigerad aritmetik: specen
  * påstod att måndag (4 portioner) plus torsdag (6 portioner) ger 750 g köttfärs.

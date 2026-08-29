@@ -3,7 +3,7 @@
  *
  * Deno-runtimen klarar flera filer, men en bunt är enklare att deploya och gör
  * det omöjligt att av misstag skeppa en halv uppsättning moduler. Källkoden är
- * fortfarande `supabase/functions/<namn>/index.ts` plus `src/` — det här är en
+ * fortfarande `supabase/functions/<namn>/index.ts` plus `src/` - det här är en
  * byggartefakt och inget att redigera.
  *
  *   npm run functions:build

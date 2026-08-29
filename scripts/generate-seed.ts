@@ -1,7 +1,7 @@
 /**
  * Genererar SQL-seed för ingredienskatalogen ur `src/domain/ingredients.ts`.
  *
- * Katalogen finns på två ställen — i TypeScript för domänlogiken och i Postgres
+ * Katalogen finns på två ställen - i TypeScript för domänlogiken och i Postgres
  * för frågor och främmandenycklar. Att skriva den två gånger för hand är ett
  * löfte om att de glider isär. Den här filen gör TypeScript-versionen till enda
  * sanningskälla och databasen till en avledd kopia.
@@ -22,7 +22,7 @@ function num(value: number | undefined): string {
 }
 
 const lines: string[] = [
-  '-- Genererad av scripts/generate-seed.ts. Redigera inte för hand —',
+  '-- Genererad av scripts/generate-seed.ts. Redigera inte för hand -',
   '-- ändra src/domain/ingredients.ts och kör om skriptet.',
   '',
   'insert into public.ingredients',

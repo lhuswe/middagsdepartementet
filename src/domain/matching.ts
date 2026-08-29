@@ -1,5 +1,5 @@
 /**
- * Produktmatchning — från ingrediens till en faktisk vara i hyllan.
+ * Produktmatchning - från ingrediens till en faktisk vara i hyllan.
  *
  * Originalspecen bad om "semantisk ingrediensmatchning" och varnade samtidigt
  * för att `mjölk` inte får bli `chokladmjölk` och `grädde` inte `gräddfil`.
@@ -9,7 +9,7 @@
  * Lösningen här är enklare och mer träffsäker än en generisk matchare: en
  * kurerad regeltabell för de ingredienser som faktiskt är tvetydiga, plus
  * City Gross egen kategorihierarki som filter. Regeln för mjölk säger att
- * varan måste ligga i mejerikategorin *och* inte innehålla "choklad" — och då
+ * varan måste ligga i mejerikategorin *och* inte innehålla "choklad" - och då
  * är problemet borta, deterministiskt och testbart.
  *
  * Resten sköts av tokenöverlapp, vilket räcker gott för entydiga ingredienser.
@@ -44,7 +44,7 @@ export type MatchConfidence =
   | 'confirmed'
   /** Tydlig vinnare med god marginal. */
   | 'probable'
-  /** Flera jämnbra kandidater — fråga användaren, välj aldrig tyst. */
+  /** Flera jämnbra kandidater - fråga användaren, välj aldrig tyst. */
   | 'ambiguous'
   /** Kandidater fanns men ingen är tillgänglig i butiken. */
   | 'unavailable'
@@ -101,7 +101,7 @@ const NEVER_FOOD_CATEGORIES = [
 /**
  * Kurerade regler för de ingredienser där ren namnlikhet gör fel.
  *
- * Tabellen behöver bara täcka de tvetydiga fallen — allt annat klarar sig på
+ * Tabellen behöver bara täcka de tvetydiga fallen - allt annat klarar sig på
  * tokenöverlapp. Att lägga till en rad här är det normala sättet att rätta en
  * felmatchning.
  */
@@ -191,7 +191,7 @@ export const MATCH_RULES: Record<string, MatchRule> = {
   kycklingfile: {
     searchTerms: ['kycklingfilé'],
     allowedCategories: ['kött', 'fågel', 'kyckling'],
-    // Kravet måste vara "filé", inte bara "kyckling" — annars vinner
+    // Kravet måste vara "filé", inte bara "kyckling" - annars vinner
     // Kycklingmage på namnlikhet. Verifierat mot skarp data.
     require: [/kycklingfil[eé]/i, /kyckling.*bröstfil[eé]/i],
     exclude: [/mage/i, /lever/i, /hjärta/i, /lår/i, /klubb/i, /vinge/i, /ben/i,
@@ -347,7 +347,7 @@ export interface MatchOptions {
 /**
  * Matchar en ingrediens mot kandidatprodukter.
  *
- * Väljer aldrig tyst mellan jämnbra alternativ — då returneras `ambiguous`
+ * Väljer aldrig tyst mellan jämnbra alternativ - då returneras `ambiguous`
  * och gränssnittet får fråga. Det är hela skillnaden mot att gissa.
  */
 export function matchIngredient(
@@ -404,7 +404,7 @@ export function matchIngredient(
   const clearOnScore = !second || first!.score - second.score >= CLEAR_WINNER_MARGIN
   const strong = first!.score >= STRONG_MATCH_SCORE
 
-  // Två varianter av samma vara är ingen tvetydighet som kräver en människa —
+  // Två varianter av samma vara är ingen tvetydighet som kräver en människa -
   // det är ett prisbeslut, och det fattar förpackningsoptimeringen bättre än
   // användaren, eftersom den ändå väger alla kandidater mot varandra.
   // Bara genuint olika sorters vara ska stoppa listan.
@@ -425,7 +425,7 @@ export function matchIngredient(
     confidence: 'ambiguous',
     candidates: viable,
     best: null,
-    note: 'Flera produkter passar lika bra — ärendet kräver manuell handläggning.',
+    note: 'Flera produkter passar lika bra - ärendet kräver manuell handläggning.',
   }
 }
 

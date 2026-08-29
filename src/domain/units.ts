@@ -38,7 +38,7 @@ const MASS_TO_G: Partial<Record<RecipeUnit, number>> = {
 
 /**
  * Enheter som betyder "en förpackning av den storlek butiken råkar sälja".
- * De konverteras aldrig till gram — de går rakt igenom till förpackningsmatten
+ * De konverteras aldrig till gram - de går rakt igenom till förpackningsmatten
  * som "köp N stycken av den matchade produkten".
  */
 const PACKAGE_UNITS: ReadonlySet<RecipeUnit> = new Set(['förpackning', 'burk', 'pkt'])
@@ -83,7 +83,7 @@ function unknownQuantity(unit: BaseUnit): BaseQuantity {
  * densitet som inte behövs.
  *
  * Förpackningsenheter (burk, pkt) kan inte konverteras och returnerar
- * `confidence: 'unknown'` — de hanteras separat i förpackningsmatten.
+ * `confidence: 'unknown'` - de hanteras separat i förpackningsmatten.
  */
 export function toBase(quantity: Quantity, ingredient: Ingredient): BaseQuantity {
   const target = ingredient.canonicalUnit
@@ -144,7 +144,7 @@ export function convertBase(
   if (quantity.confidence === 'unknown') return unknownQuantity(target)
   if (quantity.unit === target) return quantity
 
-  // "st" är inte en fysikalisk storhet — den går bara att lämna via styckvikt,
+  // "st" är inte en fysikalisk storhet - den går bara att lämna via styckvikt,
   // vilket toBase() redan har gjort. Hit ska vi aldrig komma med st.
   if (quantity.unit === 'st' || target === 'st') return unknownQuantity(target)
 
@@ -169,11 +169,11 @@ export function convertBase(
  * Tolkar City Gross `descriptiveSize` till en strukturerad förpackningsstorlek.
  *
  * Nödvändigt eftersom `netContent.unitOfMeasure` är 0 för *både* gram och
- * milliliter — verifierat mot deras API: "390G" och "1,5L" har båda 0. Enumet
+ * milliliter - verifierat mot deras API: "390G" och "1,5L" har båda 0. Enumet
  * går alltså inte att lita på, men textsträngen är entydig.
  *
  * Hanterar svenskt decimalkomma ("1,17KG") och cirkavikter ("CA600G").
- * "3-PACK" ignoreras medvetet — totalvikten står redan i storleksangivelsen.
+ * "3-PACK" ignoreras medvetet - totalvikten står redan i storleksangivelsen.
  */
 export function parseDescriptiveSize(
   descriptiveSize: string,

@@ -1,5 +1,5 @@
 /**
- * Startrecept — svensk vardagsmat.
+ * Startrecept - svensk vardagsmat.
  *
  * Allt innehåll är originalskrivet för den här appen. Inga receptexter är
  * kopierade från receptsajter eller kokböcker; det handlar dessutom om rätter
@@ -247,7 +247,7 @@ export const SEED_RECIPES: Recipe[] = [
   recipe({
     id: 'lasagne',
     name: 'Lasagne',
-    description: 'Gör gärna dubbel sats — den andra går rakt in i frysen.',
+    description: 'Gör gärna dubbel sats - den andra går rakt in i frysen.',
     servings: 6,
     prep: 25,
     cook: 40,
@@ -627,7 +627,7 @@ export const SEED_RECIPES: Recipe[] = [
       'Stek fläsket knaprigt.',
       'Värm bönorna med ättika och socker.',
       'Red av lätt med potatismjöl utrört i vatten.',
-      'Smaka av — den ska vara både söt och syrlig.',
+      'Smaka av - den ska vara både söt och syrlig.',
     ],
   }),
   recipe({

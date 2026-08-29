@@ -15,11 +15,16 @@ export function useProfil() {
     staleTime: 60_000,
   })
 
+  const butik = butikFor(query.data ?? null)
+
   return {
     ...query,
     profil: query.data ?? null,
     portioner: portionerFor(query.data ?? null),
-    butik: butikFor(query.data ?? null),
+    /** Vald butik, eller null. Se butikFor för varför det inte finns en default. */
+    butik,
+    /** Sant när profilen laddats men ingen butik är vald. */
+    saknarButik: !query.isLoading && Boolean(query.data) && butik === null,
     userId,
   }
 }

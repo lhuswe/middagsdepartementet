@@ -23,7 +23,7 @@ import { cn, formatKr } from '../../lib/utils.ts'
  * Öppnas när matchningen inte är säker nog. Poängen är inte bara att lösa den
  * här raden: valet sparas i `ingredient_product_mappings` och gör att samma
  * ingrediens blir `confirmed` nästa vecka. Det är så matchningen blir bättre
- * över tid — genom återkoppling, inte genom en smartare algoritm.
+ * över tid - genom återkoppling, inte genom en smartare algoritm.
  */
 export function ProduktValjare({
   post,

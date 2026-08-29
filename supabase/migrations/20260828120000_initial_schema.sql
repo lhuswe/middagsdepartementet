@@ -1,4 +1,4 @@
--- Departementet för middagsfrågor — grundschema
+-- Departementet för middagsfrågor - grundschema
 --
 -- Två sorters data, med helt olika ägarskap:
 --
@@ -9,7 +9,7 @@
 --   isoleras med RLS på user_id.
 --
 -- Originalspecens "varje användares data ska vara isolerad" får inte tillämpas
--- rakt av på produktkatalogen — då skulle varje hushåll behöva sin egen kopia
+-- rakt av på produktkatalogen - då skulle varje hushåll behöva sin egen kopia
 -- av City Gross sortiment. Rättigheterna sätts i 20260828120100_rls.sql.
 
 create extension if not exists "pgcrypto";
@@ -150,7 +150,7 @@ create table public.profiles (
   allergies         text[] not null default '{}',
   dislikes          text[] not null default '{}',
   diets             text[] not null default '{}',
-  -- Medlemspriser räknas bara in för medlemmar — annars blir uppskattningen
+  -- Medlemspriser räknas bara in för medlemmar - annars blir uppskattningen
   -- systematiskt för låg.
   is_member         boolean not null default false,
   assume_staples_available boolean not null default true,
@@ -244,7 +244,7 @@ create table public.shopping_lists (
   store_number text not null references public.stores(store_number),
   status       text not null default 'open' check (status in ('open', 'done', 'archived')),
   -- Summan av de poster som faktiskt hade ett pris. Aldrig en gissning för
-  -- helheten — antalet prislösa poster redovisas separat.
+  -- helheten - antalet prislösa poster redovisas separat.
   estimated_total     numeric(10, 2) not null default 0,
   items_without_price integer not null default 0,
   -- Äldsta synktidpunkt bland de valda produkterna, så listan aldrig ser
@@ -289,7 +289,7 @@ create index shopping_list_items_list_idx
   on public.shopping_list_items (shopping_list_id, category, sort_order);
 
 -- Användarens egna produktval. Det är den här tabellen som gör matchningen
--- bättre över tid — inte en smartare algoritm.
+-- bättre över tid - inte en smartare algoritm.
 create table public.ingredient_product_mappings (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references auth.users(id) on delete cascade,

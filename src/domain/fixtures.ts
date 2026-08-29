@@ -1,5 +1,5 @@
 /**
- * Testfixturer. Bara till för enhetstester — importeras aldrig av appen.
+ * Testfixturer. Bara till för enhetstester - importeras aldrig av appen.
  *
  * Produktformen speglar City Gross faktiska svar, inklusive de fält som är
  * lätta att göra fel på: `sellingUnit` och kampanjer med minimiantal.

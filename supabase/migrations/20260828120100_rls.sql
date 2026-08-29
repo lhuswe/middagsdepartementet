@@ -3,17 +3,17 @@
 -- Grundregeln: RLS på ALLT. Men rättigheterna ser olika ut för de två sorternas
 -- data, och att blanda ihop dem är det klassiska misstaget här.
 --
---   Referensdata  — läsbar för alla inloggade, skrivbar bara av service role.
+--   Referensdata  - läsbar för alla inloggade, skrivbar bara av service role.
 --                   Ingen INSERT/UPDATE/DELETE-policy skrivs, vilket betyder
 --                   att ingen vanlig användare kan skriva. service_role går
 --                   förbi RLS och används av synkjobbet.
 --
---   Användardata  — helt privat. Varje rad ägs av en user_id, och policyerna
+--   Användardata  - helt privat. Varje rad ägs av en user_id, och policyerna
 --                   jämför alltid mot auth.uid(). Klientens uppfattning om vem
 --                   den är spelar ingen roll.
 --
 -- Barntabeller (recipe_ingredients, meal_plan_items, shopping_list_items) har
--- inget eget user_id. De ärver ägarskapet via förälderns rad — och kontrollen
+-- inget eget user_id. De ärver ägarskapet via förälderns rad - och kontrollen
 -- görs i policyn, inte i frontend.
 
 -- ── Referensdata: läs för inloggade, skriv bara via service role ────────────

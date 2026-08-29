@@ -1,17 +1,12 @@
-import {
-  CalendarDays,
-  ChefHat,
-  LayoutDashboard,
-  Menu,
-  Package,
-  ShoppingCart,
-  X,
-} from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { CalendarDays, ChefHat, LayoutDashboard, Package, ShoppingCart } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
-import { cn } from '../lib/utils.ts'
 import { useAuth } from '../features/auth/auth-context.ts'
+import { useProfil } from '../hooks/useProfil.ts'
+import { cn } from '../lib/utils.ts'
+import { Ordmarke } from './Logotyp.tsx'
+import { Profilruta } from './Profilruta.tsx'
 
 interface NavPost {
   till: string
@@ -21,7 +16,7 @@ interface NavPost {
 
 /**
  * Navigationen är rakt och praktiskt formulerad. Skämtet i appen bor i namnet
- * och i tomma lägen — inte här, där man ska hitta snabbt.
+ * och i tomma lägen, inte här, där man ska hitta snabbt.
  */
 const HUVUDNAV: NavPost[] = [
   { till: '/', etikett: 'Översikt', Ikon: LayoutDashboard },
@@ -38,8 +33,8 @@ const OVRIGNAV: { till: string; etikett: string }[] = [
 ]
 
 export function Layout({ visaAdmin }: { visaAdmin: boolean }) {
-  const [menyOppen, setMenyOppen] = useState(false)
-  const { loggaUt } = useAuth()
+  const { user } = useAuth()
+  const { profil } = useProfil()
 
   const ovriga = visaAdmin
     ? [...OVRIGNAV, { till: '/admin', etikett: 'Diagnostik och tillsyn' }]
@@ -52,15 +47,14 @@ export function Layout({ visaAdmin }: { visaAdmin: boolean }) {
       </a>
 
       <header className="sticky top-0 z-20 border-b border-[var(--kant)] bg-[var(--yta)]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
-          <NavLink to="/" className="min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-dampad)]">
-              Departementet för
-            </p>
-            <p className="truncate text-lg font-semibold leading-tight">middagsfrågor</p>
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-2.5">
+          <NavLink to="/" className="min-w-0 rounded-lg" aria-label="Till översikten">
+            <Ordmarke storlek={34} />
           </NavLink>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudnavigering">
+          {/* Huvudnavigeringen syns på stora skärmar. På mobil ligger den fast
+              längst ned i stället, där tummen når den. */}
+          <nav className="mx-auto hidden items-center gap-1 md:flex" aria-label="Huvudnavigering">
             {HUVUDNAV.map(({ till, etikett }) => (
               <SkrivbordsLank key={till} till={till}>
                 {etikett}
@@ -68,56 +62,20 @@ export function Layout({ visaAdmin }: { visaAdmin: boolean }) {
             ))}
           </nav>
 
-          <button
-            type="button"
-            onClick={() => setMenyOppen((open) => !open)}
-            aria-expanded={menyOppen}
-            aria-label={menyOppen ? 'Stäng meny' : 'Öppna meny'}
-            className="flex size-11 items-center justify-center rounded-lg hover:bg-[var(--yta-dampad)]"
-          >
-            {menyOppen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
-        </div>
-
-        {menyOppen ? (
-          <div className="border-t border-[var(--kant)] bg-[var(--yta)]">
-            <div className="mx-auto max-w-4xl px-4 py-2">
-              <nav aria-label="Övriga sidor" className="grid gap-1">
-                <div className="grid gap-1 md:hidden">
-                  {HUVUDNAV.map(({ till, etikett }) => (
-                    <MenyLank key={till} till={till} onClick={() => setMenyOppen(false)}>
-                      {etikett}
-                    </MenyLank>
-                  ))}
-                  <hr className="my-1 border-[var(--kant)]" />
-                </div>
-                {ovriga.map(({ till, etikett }) => (
-                  <MenyLank key={till} till={till} onClick={() => setMenyOppen(false)}>
-                    {etikett}
-                  </MenyLank>
-                ))}
-                <hr className="my-1 border-[var(--kant)]" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenyOppen(false)
-                    void loggaUt()
-                  }}
-                  className="flex min-h-11 items-center rounded-lg px-3 text-left text-sm hover:bg-[var(--yta-dampad)]"
-                >
-                  Logga ut
-                </button>
-              </nav>
-            </div>
+          <div className="ml-auto md:ml-0">
+            <Profilruta
+              namn={profil?.display_name ?? null}
+              epost={user?.email ?? null}
+              lankar={ovriga}
+            />
           </div>
-        ) : null}
+        </div>
       </header>
 
       <main id="innehall" className="mx-auto max-w-4xl px-4 pt-5 pb-24 md:pb-10">
         <Outlet />
       </main>
 
-      {/* Fast navigering längst ned på mobil — tummen når hit. */}
       <nav
         aria-label="Snabbnavigering"
         className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--kant)] bg-[var(--yta)] pb-[env(safe-area-inset-bottom)] md:hidden"
@@ -153,36 +111,10 @@ function SkrivbordsLank({ till, children }: { till: string; children: ReactNode 
       end={till === '/'}
       className={({ isActive }) =>
         cn(
-          'rounded-lg px-3 py-2 text-sm',
+          'rounded-lg px-3 py-2 text-sm transition-colors',
           isActive
             ? 'bg-[var(--yta-dampad)] font-medium text-[var(--text)]'
-            : 'text-[var(--text-dampad)] hover:bg-[var(--yta-dampad)]',
-        )
-      }
-    >
-      {children}
-    </NavLink>
-  )
-}
-
-function MenyLank({
-  till,
-  children,
-  onClick,
-}: {
-  till: string
-  children: ReactNode
-  onClick: () => void
-}) {
-  return (
-    <NavLink
-      to={till}
-      end={till === '/'}
-      onClick={onClick}
-      className={({ isActive }) =>
-        cn(
-          'flex min-h-11 items-center rounded-lg px-3 text-sm',
-          isActive ? 'bg-[var(--yta-dampad)] font-medium' : 'hover:bg-[var(--yta-dampad)]',
+            : 'text-[var(--text-dampad)] hover:bg-[var(--yta-dampad)] hover:text-[var(--text)]',
         )
       }
     >

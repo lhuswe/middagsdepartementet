@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 
 import { SidHuvud } from '../../components/Layout.tsx'
+import { SaknarButik } from '../../components/SaknarButik.tsx'
 import { Button } from '../../components/ui/button.tsx'
 import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning } from '../../components/ui/feedback.tsx'
@@ -20,7 +21,7 @@ import { formatKr } from '../../lib/utils.ts'
  * Diagnostik och tillsyn.
  *
  * Ligger bakom `profiles.is_admin` och är inte länkad för andra användare. RLS
- * skyddar dessutom `sync_runs` på databasnivå — sidan döljs, men det är inte
+ * skyddar dessutom `sync_runs` på databasnivå - sidan döljs, men det är inte
  * döljandet som är skyddet.
  */
 export function AdminSida() {
@@ -36,31 +37,31 @@ export function AdminSida() {
       const { data, error } = await supabase
         .from('sync_runs')
         .select('*')
-        .eq('store_number', butik)
+        .eq('store_number', butik!)
         .order('started_at', { ascending: false })
         .limit(10)
       if (error) throw error
       return data ?? []
     },
-    enabled: Boolean(profil?.is_admin),
+    enabled: Boolean(profil?.is_admin && butik),
   })
 
   const antal = useQuery({
     queryKey: ['antalprodukter', butik],
-    queryFn: () => antalProdukter(butik),
-    enabled: Boolean(profil?.is_admin),
+    queryFn: () => antalProdukter(butik!),
+    enabled: Boolean(profil?.is_admin && butik),
   })
 
   const senast = useQuery({
     queryKey: ['senastesynk', butik],
-    queryFn: () => senasteSynk(butik),
-    enabled: Boolean(profil?.is_admin),
+    queryFn: () => senasteSynk(butik!),
+    enabled: Boolean(profil?.is_admin && butik),
   })
 
   const traffar = useQuery({
     queryKey: ['admin-produktsok', butik, sokterm],
-    queryFn: () => sokProdukter(sokterm, butik, 20),
-    enabled: Boolean(profil?.is_admin) && sokterm.length >= 2,
+    queryFn: () => sokProdukter(sokterm, butik!, 20),
+    enabled: Boolean(profil?.is_admin && butik) && sokterm.length >= 2,
   })
 
   const matchning = useQuery({
@@ -70,18 +71,18 @@ export function AdminSida() {
       if (!ingredient) return null
       const kandidater: Awaited<ReturnType<typeof sokProdukter>> = []
       for (const term of searchTermsFor(ingredient)) {
-        kandidater.push(...(await sokProdukter(term, butik, 25)))
+        kandidater.push(...(await sokProdukter(term, butik!, 25)))
       }
       const unika = [...new Map(kandidater.map((p) => [p.gtin, p])).values()]
       return { ingredient, resultat: matchIngredient(ingredient, unika), antal: unika.length }
     },
-    enabled: Boolean(profil?.is_admin),
+    enabled: Boolean(profil?.is_admin && butik),
   })
 
   const korSynk = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('citygross-sync', {
-        body: { storeNumber: butik },
+        body: { storeNumber: butik! },
       })
       if (error) throw error
       return data as { status?: string; productsUpserted?: number; failures?: string[] }
@@ -104,6 +105,15 @@ export function AdminSida() {
   if (isLoading) return <SidLaddning />
   if (!profil?.is_admin) return <Navigate to="/" replace />
 
+  if (!butik) {
+    return (
+      <>
+        <SidHuvud rubrik="Diagnostik och tillsyn" />
+        <SaknarButik vad="Sortimentsuppgifter" />
+      </>
+    )
+  }
+
   return (
     <>
       <SidHuvud
@@ -117,7 +127,7 @@ export function AdminSida() {
 
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Uppgift etikett="Butik" varde={butik} />
-            <Uppgift etikett="Varor i katalogen" varde={String(antal.data ?? '–')} />
+            <Uppgift etikett="Varor i katalogen" varde={String(antal.data ?? '-')} />
             <Uppgift
               etikett="Senast hämtat"
               varde={
@@ -128,7 +138,7 @@ export function AdminSida() {
             />
             <Uppgift
               etikett="Senaste körning"
-              varde={korningar.data?.[0]?.status ?? '–'}
+              varde={korningar.data?.[0]?.status ?? '-'}
             />
           </dl>
 
@@ -240,7 +250,7 @@ export function AdminSida() {
           {matchning.data ? (
             <>
               <p className="mt-3 text-sm">
-                <strong>{matchning.data.resultat.confidence}</strong> — {matchning.data.antal}{' '}
+                <strong>{matchning.data.resultat.confidence}</strong> - {matchning.data.antal}{' '}
                 kandidater slogs upp, {matchning.data.resultat.candidates.length} klarade tröskeln.
               </p>
               {matchning.data.resultat.note ? (

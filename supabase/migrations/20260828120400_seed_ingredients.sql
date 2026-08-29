@@ -1,4 +1,4 @@
--- Genererad av scripts/generate-seed.ts. Redigera inte för hand —
+-- Genererad av scripts/generate-seed.ts. Redigera inte för hand -
 -- ändra src/domain/ingredients.ts och kör om skriptet.
 
 insert into public.ingredients
