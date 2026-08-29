@@ -381,3 +381,84 @@ export async function uppdateraSumma(listId: string): Promise<void> {
     })
     .eq('id', listId)
 }
+
+/**
+ * Antalet listor som redan finns med ett visst basnamn.
+ *
+ * Används för att skilja flera listor för samma vecka åt. Utan det heter de
+ * alla "Vecka 35" och går inte att välja mellan i översikten.
+ */
+async function antalMedNamn(householdId: HouseholdId, basnamn: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('shopping_lists')
+    .select('id', { count: 'exact', head: true })
+    .eq('household_id', householdId)
+    .ilike('name', `${basnamn}%`)
+
+  if (error) throw error
+  return count ?? 0
+}
+
+/** "Vecka 35" första gången, "Vecka 35 (2)" nästa. */
+export async function nastaListnamn(
+  householdId: HouseholdId,
+  basnamn: string,
+): Promise<string> {
+  const antal = await antalMedNamn(householdId, basnamn)
+  return antal === 0 ? basnamn : `${basnamn} (${antal + 1})`
+}
+
+/**
+ * Skapar en tom lista att fylla för hand.
+ *
+ * Allt går inte att planera. Ibland ska man bara köpa fem saker, och då är
+ * vägen via en veckomatsedel i vägen.
+ */
+export async function skapaTomLista(
+  hushall: HouseholdRow,
+  userId: string,
+  namn: string,
+): Promise<string> {
+  if (!hushall.store_number) {
+    throw new Error('Ingen butik är vald. Välj butik under Inställningar innan du skapar listan.')
+  }
+
+  const { data, error } = await supabase
+    .from('shopping_lists')
+    .insert({
+      household_id: hushall.id,
+      user_id: userId,
+      meal_plan_id: null,
+      name: namn.trim() || 'Inköpslista',
+      store_number: hushall.store_number,
+      estimated_total: 0,
+      items_without_price: 0,
+      oldest_data_at: null,
+      generated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return data.id
+}
+
+export async function bytNamnPaLista(listId: string, namn: string): Promise<void> {
+  const { error } = await supabase
+    .from('shopping_lists')
+    .update({ name: namn.trim() || 'Inköpslista' })
+    .eq('id', listId)
+  if (error) throw error
+}
+
+/**
+ * Raderar en lista på riktigt.
+ *
+ * Avsiktligt inte arkivering. En lista man ångrat ska inte ligga kvar och dra
+ * ned snittet i statistiken, och `archived` hade bara flyttat problemet.
+ * `shopping_list_items` har `on delete cascade`, så posterna följer med.
+ */
+export async function taBortLista(listId: string): Promise<void> {
+  const { error } = await supabase.from('shopping_lists').delete().eq('id', listId)
+  if (error) throw error
+}

@@ -1,23 +1,34 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Check, Clock, Users } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Pencil, TriangleAlert, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { Button } from '../../components/ui/button.tsx'
+import { Button, LinkButton } from '../../components/ui/button.tsx'
 import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
 import { scaleRecipe } from '../../domain/aggregate.ts'
 import { getIngredient } from '../../domain/ingredients.ts'
 import { useHushall } from '../../hooks/useHushall.ts'
-import { useMarkeraLagad } from '../../hooks/useRecept.ts'
-import { hamtaRecept1 } from '../../services/recipes.ts'
+import { useMarkeraLagad, useReceptredigering } from '../../hooks/useRecept.ts'
+import { hamtaRecept1, planeradeMaltiderFor } from '../../services/recipes.ts'
 import { formatMinutes } from '../../lib/utils.ts'
 
 export function ReceptDetalj() {
   const { receptId } = useParams()
+  const navigera = useNavigate()
   const { portioner } = useHushall()
   const markeraLagad = useMarkeraLagad()
+  const { taBort } = useReceptredigering()
   const [portionerVal, setPortionerVal] = useState<number | null>(null)
+  const [bekraftar, setBekraftar] = useState(false)
+
+  // Hämtas först när användaren öppnat bekräftelsen: varningen ska kunna säga
+  // hur många planerade dagar som töms, inte bara att något kan hända.
+  const planerade = useQuery({
+    queryKey: ['planerade-maltider', receptId],
+    queryFn: () => planeradeMaltiderFor(receptId!),
+    enabled: bekraftar && Boolean(receptId),
+  })
 
   const query = useQuery({
     queryKey: ['recept-detalj', receptId],
@@ -52,8 +63,57 @@ export function ReceptDetalj() {
         Alla recept
       </Link>
 
-      <h1 className="text-2xl font-semibold tracking-tight">{recept.name}</h1>
-      <p className="mt-1 text-[var(--text-dampad)]">{recept.description}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight">{recept.name}</h1>
+          <p className="mt-1 text-[var(--text-dampad)]">{recept.description}</p>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <LinkButton to={`/recept/${recept.id}/andra`} variant="secondary" size="sm">
+            <Pencil className="size-4" aria-hidden />
+            Ändra
+          </LinkButton>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Ta bort receptet"
+            onClick={() => setBekraftar(true)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {bekraftar ? (
+        <Notis ton="fel" className="mt-4" titel="Ta bort receptet?">
+          {planerade.data
+            ? `Receptet ligger på ${planerade.data} planerad${planerade.data === 1 ? ' dag' : 'e dagar'}, som blir tomma.`
+            : 'Receptet försvinner ur samlingen.'}{' '}
+          Det går inte att ångra.
+          <span className="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={taBort.isPending}
+              onClick={() =>
+                taBort.mutate(recept.id, { onSuccess: () => navigera('/recept', { replace: true }) })
+              }
+            >
+              <TriangleAlert className="size-4" aria-hidden />
+              {taBort.isPending ? 'Tar bort…' : 'Ja, ta bort'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setBekraftar(false)}>
+              Avbryt
+            </Button>
+          </span>
+        </Notis>
+      ) : null}
+
+      {taBort.error ? (
+        <Notis ton="fel" className="mt-4">
+          {taBort.error instanceof Error ? taBort.error.message : 'Receptet kunde inte tas bort.'}
+        </Notis>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--text-dampad)]">
         <span className="inline-flex items-center gap-1.5">

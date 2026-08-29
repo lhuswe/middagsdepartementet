@@ -1,17 +1,17 @@
 import { useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
-import { Clock, Heart, Search } from 'lucide-react'
+import { Clock, Heart, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { SidHuvud } from '../../components/Layout.tsx'
-import { Button } from '../../components/ui/button.tsx'
+import { Button, LinkButton } from '../../components/ui/button.tsx'
 import { Card } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
 import { useAuth } from '../auth/auth-context.ts'
 import { useHushall } from '../../hooks/useHushall.ts'
 import { useFavoritrecept, useRecept } from '../../hooks/useRecept.ts'
-import { importeraStartrecept } from '../../services/recipes.ts'
+import { importeraStartrecept, kompletteraStartrecept } from '../../services/recipes.ts'
 import { cn, formatMinutes } from '../../lib/utils.ts'
 
 /** Filter som motsvarar hur man faktiskt letar efter en vardagsmiddag. */
@@ -45,6 +45,13 @@ export function ReceptSida() {
     onSuccess: () => klient.invalidateQueries({ queryKey: ['recept'] }),
   })
 
+  // Kompletteringen skapar aldrig nya recept, bara ingrediensrader till dem som
+  // saknar sina. Ett startrecept man raderat ska inte dyka upp igen av misstag.
+  const komplettera = useMutation({
+    mutationFn: () => kompletteraStartrecept(hushallId!),
+    onSuccess: () => klient.invalidateQueries({ queryKey: ['recept'] }),
+  })
+
   const traffar = useMemo(() => {
     const sok = fraga.trim().toLowerCase()
     return (recept ?? []).filter((item) => {
@@ -69,6 +76,12 @@ export function ReceptSida() {
       <SidHuvud
         rubrik="Recept"
         underrubrik={`${recept?.length ?? 0} rätter i samlingen`}
+        action={
+          <LinkButton to="/recept/nytt">
+            <Plus className="size-4" aria-hidden />
+            Nytt recept
+          </LinkButton>
+        }
       />
 
       {/*
@@ -83,18 +96,20 @@ export function ReceptSida() {
           <span className="mt-3 block">
             <Button
               size="sm"
-              disabled={importera.isPending}
-              onClick={() => importera.mutate()}
+              disabled={komplettera.isPending}
+              onClick={() => komplettera.mutate()}
             >
-              {importera.isPending ? 'Kompletterar…' : 'Komplettera recepten'}
+              {komplettera.isPending ? 'Kompletterar…' : 'Komplettera recepten'}
             </Button>
           </span>
         </Notis>
       ) : null}
 
-      {importera.error ? (
+      {importera.error || komplettera.error ? (
         <Notis ton="fel" className="mb-4" titel="Recepten kunde inte hämtas">
-          {importera.error instanceof Error ? importera.error.message : 'Okänt fel.'}
+          {(importera.error ?? komplettera.error) instanceof Error
+            ? (importera.error ?? komplettera.error)!.message
+            : 'Okänt fel.'}
         </Notis>
       ) : null}
 

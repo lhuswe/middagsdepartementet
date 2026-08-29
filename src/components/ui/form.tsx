@@ -1,4 +1,10 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react'
 
 import { cn } from '../../lib/utils.ts'
 
@@ -13,6 +19,7 @@ const fieldBase =
  */
 export function Field({
   label,
+  doldEtikett,
   hint,
   error,
   children,
@@ -20,6 +27,14 @@ export function Field({
   className,
 }: {
   label: ReactNode
+  /**
+   * Döljer etiketten visuellt men behåller den för skärmläsare.
+   *
+   * Finns för upprepade rader - ingredienslistan i receptformuläret - där
+   * kolumnrubriken räcker för den som ser, men varje fält ändå måste ha en
+   * egen etikett. Alternativet, en tom `<label>`, lämnar fältet onämnt.
+   */
+  doldEtikett?: boolean
   hint?: ReactNode
   error?: ReactNode
   children: ReactNode
@@ -28,7 +43,10 @@ export function Field({
 }) {
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label htmlFor={htmlFor} className="block text-sm font-medium">
+      <label
+        htmlFor={htmlFor}
+        className={doldEtikett ? 'sr-only' : 'block text-sm font-medium'}
+      >
         {label}
       </label>
       {children}
@@ -44,15 +62,24 @@ export function Field({
 
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: ReactNode
+  doldEtikett?: boolean
   hint?: ReactNode
   error?: ReactNode
 }
 
-export function TextField({ label, hint, error, className, id, ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  doldEtikett,
+  hint,
+  error,
+  className,
+  id,
+  ...props
+}: TextFieldProps) {
   const generated = useId()
   const fieldId = id ?? generated
   return (
-    <Field label={label} hint={hint} error={error} htmlFor={fieldId}>
+    <Field label={label} doldEtikett={doldEtikett} hint={hint} error={error} htmlFor={fieldId}>
       <input
         id={fieldId}
         aria-invalid={error ? true : undefined}
@@ -63,17 +90,56 @@ export function TextField({ label, hint, error, className, id, ...props }: TextF
   )
 }
 
+export interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: ReactNode
+  doldEtikett?: boolean
+  hint?: ReactNode
+  error?: ReactNode
+}
+
+export function TextAreaField({
+  label,
+  doldEtikett,
+  hint,
+  error,
+  className,
+  id,
+  ...props
+}: TextAreaFieldProps) {
+  const generated = useId()
+  const fieldId = id ?? generated
+  return (
+    <Field label={label} doldEtikett={doldEtikett} hint={hint} error={error} htmlFor={fieldId}>
+      <textarea
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        className={cn(fieldBase, 'min-h-24 resize-y py-2 leading-relaxed', className)}
+        {...props}
+      />
+    </Field>
+  )
+}
+
 export interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: ReactNode
+  doldEtikett?: boolean
   hint?: ReactNode
   children: ReactNode
 }
 
-export function SelectField({ label, hint, className, id, children, ...props }: SelectFieldProps) {
+export function SelectField({
+  label,
+  doldEtikett,
+  hint,
+  className,
+  id,
+  children,
+  ...props
+}: SelectFieldProps) {
   const generated = useId()
   const fieldId = id ?? generated
   return (
-    <Field label={label} hint={hint} htmlFor={fieldId}>
+    <Field label={label} doldEtikett={doldEtikett} hint={hint} htmlFor={fieldId}>
       <select id={fieldId} className={cn(fieldBase, 'pr-8', className)} {...props}>
         {children}
       </select>

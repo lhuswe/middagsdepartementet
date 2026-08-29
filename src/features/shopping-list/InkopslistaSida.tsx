@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { SidHuvud } from '../../components/Layout.tsx'
 import { Button } from '../../components/ui/button.tsx'
@@ -13,19 +13,12 @@ import { BigCheckbox } from '../../components/ui/form.tsx'
 import { SHOPPING_CATEGORY_LABELS, SHOPPING_CATEGORY_ORDER } from '../../domain/types.ts'
 import type { ShoppingCategory } from '../../domain/types.ts'
 import { formatQuantity } from '../../domain/units.ts'
-import { useAuth } from '../auth/auth-context.ts'
-import { useHushall, useHushallsallergier } from '../../hooks/useHushall.ts'
-import { useRecept } from '../../hooks/useRecept.ts'
-import { useVeckoplan } from '../../hooks/useVeckoplan.ts'
-import { veckostart } from '../../services/mealPlans.ts'
-import { hamtaSkafferi, tillPantryEntries } from '../../services/pantry.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import {
   aterstallLista,
-  genereraInkopslista,
   hamtaLista,
   kryssaPost,
   laggTillManuellPost,
-  senasteOppnaLista,
   sattListStatus,
   taBortPost,
   uppdateraSumma,
@@ -47,85 +40,24 @@ interface ProduktSnapshot {
 export function InkopslistaSida() {
   const { listId: listIdParam } = useParams()
   const navigera = useNavigate()
-  const [sokparametrar, sattSokparametrar] = useSearchParams()
   const klient = useQueryClient()
-  const { user } = useAuth()
-
   const { hushall, portioner } = useHushall()
-  const { data: hushallsallergier } = useHushallsallergier()
-  const { data: recept } = useRecept()
-  const weekStart = veckostart()
-  const { data: plan } = useVeckoplan(weekStart)
 
   const [barKvarvarande, setBarKvarvarande] = useState(false)
   const [valjPost, setValjPost] = useState<ShoppingListItemRow | null>(null)
   const [nyPost, setNyPost] = useState('')
   const [fel, setFel] = useState<string | null>(null)
 
+  /** Fäster ett felmeddelande på sidan i stället för att låta det försvinna. */
+  const visaFel = (text: string) => ({
+    onError: (error: unknown) => setFel(error instanceof Error ? error.message : text),
+  })
+
   const aktivLista = useQuery({
     queryKey: ['aktivlista', hushall?.id, listIdParam],
-    queryFn: async () => {
-      if (listIdParam) return hamtaLista(listIdParam)
-      const senaste = await senasteOppnaLista(hushall!.id)
-      return senaste ? hamtaLista(senaste.id) : null
-    },
-    enabled: Boolean(hushall?.id),
+    queryFn: () => hamtaLista(listIdParam!),
+    enabled: Boolean(listIdParam),
   })
-
-  const generera = useMutation({
-    mutationFn: async () => {
-      if (!user || !hushall || !recept) throw new Error('Uppgifter saknas.')
-
-      const receptPerId = new Map(recept.map((item) => [item.id, item]))
-      const maltider = (plan?.poster ?? [])
-        .filter((post) => post.meal_type === 'dinner' && post.recipe_id)
-        .map((post) => {
-          const recipe = receptPerId.get(post.recipe_id!)
-          return recipe
-            ? { recipe, servings: post.servings, slotId: `${post.served_on}/dinner` }
-            : null
-        })
-        .filter((meal): meal is NonNullable<typeof meal> => meal !== null)
-
-      if (maltider.length === 0) {
-        throw new Error('Veckan innehåller inga måltider att handla för.')
-      }
-
-      const skafferi = tillPantryEntries(await hamtaSkafferi(hushall.id))
-      return genereraInkopslista(hushall, user.id, hushallsallergier ?? [], maltider, skafferi, {
-        mealPlanId: plan?.plan.id ?? null,
-        namn: `Vecka ${format(parseISO(weekStart), 'w', { locale: sv })}`,
-      })
-    },
-    onSuccess: (resultat) => {
-      setFel(null)
-      navigera(`/inkopslista/${resultat.listId}`, { replace: true })
-      void klient.invalidateQueries({ queryKey: ['aktivlista'] })
-      void klient.invalidateQueries({ queryKey: ['listor'] })
-    },
-    onError: (error: unknown) =>
-      setFel(error instanceof Error ? error.message : 'Listan kunde inte skapas.'),
-  })
-
-  /*
-   * Veckoplaneraren länkar hit med ?generera=1.
-   *
-   * Spärren behövs. Effekten beror på tre frågeresultat, och deras identitet
-   * byts vid varje omhämtning - att rensa sökparametern räcker inte, eftersom
-   * effekten hinner köra igen innan den nya URL:en slagit igenom. Resultatet
-   * blev flera identiska listor skapade inom samma sekund.
-   */
-  const genereringStartad = useRef(false)
-
-  useEffect(() => {
-    if (sokparametrar.get('generera') !== '1') return
-    if (genereringStartad.current) return
-    if (!hushall || !recept || !plan) return
-    genereringStartad.current = true
-    sattSokparametrar({}, { replace: true })
-    generera.mutate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hushall, recept, plan])
 
   const kryssa = useMutation({
     mutationFn: (args: { id: string; kryssad: boolean }) => kryssaPost(args.id, args.kryssad),
@@ -152,8 +84,10 @@ export function InkopslistaSida() {
     mutationFn: (namn: string) => laggTillManuellPost(aktivLista.data!.lista.id, namn),
     onSuccess: () => {
       setNyPost('')
+      setFel(null)
       void klient.invalidateQueries({ queryKey: ['aktivlista'] })
     },
+    ...visaFel('Posten kunde inte läggas till.'),
   })
 
   const taBort = useMutation({
@@ -162,11 +96,13 @@ export function InkopslistaSida() {
       if (aktivLista.data) await uppdateraSumma(aktivLista.data.lista.id)
     },
     onSuccess: () => klient.invalidateQueries({ queryKey: ['aktivlista'] }),
+    ...visaFel('Posten kunde inte tas bort.'),
   })
 
   const aterstall = useMutation({
     mutationFn: () => aterstallLista(aktivLista.data!.lista.id),
     onSuccess: () => klient.invalidateQueries({ queryKey: ['aktivlista'] }),
+    ...visaFel('Listan kunde inte återställas.'),
   })
 
   const avsluta = useMutation({
@@ -174,7 +110,7 @@ export function InkopslistaSida() {
     onSuccess: () => {
       void klient.invalidateQueries({ queryKey: ['aktivlista'] })
       void klient.invalidateQueries({ queryKey: ['listor'] })
-      navigera('/historik')
+      navigera('/inkopslista')
     },
   })
 
@@ -231,32 +167,27 @@ export function InkopslistaSida() {
         </Notis>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Button disabled={generera.isPending} onClick={() => generera.mutate()}>
-          {generera.isPending ? 'Ärendet bereds…' : 'Skapa inköpslista från veckan'}
-        </Button>
-        {lista ? (
-          <>
-            <Button
-              variant={barKvarvarande ? 'primary' : 'secondary'}
-              onClick={() => setBarKvarvarande((v) => !v)}
-              aria-pressed={barKvarvarande}
-            >
-              Visa bara kvarvarande
-            </Button>
-            <Button variant="secondary" onClick={() => aterstall.mutate()}>
-              <RotateCcw className="size-4" aria-hidden />
-              Återställ allt
-            </Button>
-          </>
-        ) : null}
-      </div>
+      {lista ? (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button
+            variant={barKvarvarande ? 'primary' : 'secondary'}
+            onClick={() => setBarKvarvarande((v) => !v)}
+            aria-pressed={barKvarvarande}
+          >
+            Visa bara kvarvarande
+          </Button>
+          <Button variant="secondary" onClick={() => aterstall.mutate()}>
+            <RotateCcw className="size-4" aria-hidden />
+            Återställ allt
+          </Button>
+        </div>
+      ) : null}
 
       {!lista ? (
         <TomtLage
-          rubrik="Ingen inköpslista är upprättad."
-          beskrivning="Planera veckans middagar först, så räknar departementet ut vad som behöver inhandlas."
-          action={<Button onClick={() => navigera('/vecka')}>Till min vecka</Button>}
+          rubrik="Listan finns inte."
+          beskrivning="Den kan ha tagits bort. Översikten visar hushållets övriga listor."
+          action={<Button onClick={() => navigera('/inkopslista')}>Till inköpslistorna</Button>}
         />
       ) : (
         <>

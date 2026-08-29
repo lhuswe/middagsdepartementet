@@ -12,7 +12,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactElement } from 'react'
@@ -176,6 +176,10 @@ function rendera(element: ReactElement, sokvag = '/') {
       <AuthProvider>
         <MemoryRouter initialEntries={[sokvag]}>
           <Routes>
+            {/* Statisk före dynamisk, precis som i App.tsx: annars blir
+                "nytt" tolkat som ett recept-id. */}
+            <Route path="/recept/nytt" element={element} />
+            <Route path="/recept/:receptId/andra" element={element} />
             <Route path="/recept/:receptId" element={element} />
             <Route path="/inkopslista/:listId" element={element} />
             <Route path="*" element={element} />
@@ -240,10 +244,19 @@ const SIDOR: { namn: string; ladda: () => Promise<ReactElement>; sokvag?: string
     },
   },
   {
-    namn: 'Historik',
+    namn: 'Inköpslistor (översikt)',
     ladda: async () => {
-      const { HistorikSida } = await import('../features/shopping-list/HistorikSida.tsx')
-      return <HistorikSida />
+      const { InkopslistaOversikt } = await import(
+        '../features/shopping-list/InkopslistaOversikt.tsx'
+      )
+      return <InkopslistaOversikt />
+    },
+  },
+  {
+    namn: 'Nytt recept',
+    ladda: async () => {
+      const { ReceptFormular } = await import('../features/recipes/ReceptFormular.tsx')
+      return <ReceptFormular />
     },
   },
   {
@@ -366,5 +379,71 @@ describe('nyckelsidor visar rätt sak', () => {
     rendera(<SkafferiSida />, '/skafferi')
 
     await waitFor(() => expect(screen.getAllByText('salt').length).toBeGreaterThan(0))
+  })
+})
+
+/**
+ * Redigering och listhantering.
+ *
+ * Sidorna ovan kontrollerar att något renderas. De här kontrollerar att
+ * åtgärderna faktiskt beter sig - särskilt de som inte får gå igenom av
+ * misstag.
+ */
+describe('recept och listor går att ändra', () => {
+  beforeEach(() => {
+    attrapp.klient = skapaSupabaseAttrapp({
+      tabeller: FULLT_DATASET,
+      funktioner: { hushallets_allergier: [] },
+    })
+  })
+
+  it('vägrar spara ett recept utan ingredienser', async () => {
+    const { ReceptFormular } = await import('../features/recipes/ReceptFormular.tsx')
+    rendera(<ReceptFormular />, '/recept/nytt')
+
+    await waitFor(() => expect(screen.getByLabelText('Namn')).toBeTruthy())
+    fireEvent.change(screen.getByLabelText('Namn'), { target: { value: 'Provrätt' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Skapa receptet' }))
+
+    // Ett recept utan ingredienser går inte att handla för. Det var precis så
+    // trettio tomma recept kunde bli osynliga i produktionen.
+    await waitFor(() =>
+      expect(screen.getByText(/går inte att handla för/)).toBeTruthy(),
+    )
+    expect(attrapp.klient!.from).not.toHaveBeenCalledWith('recipes')
+  })
+
+  it('lägger till en ingrediensrad med etikett för skärmläsare', async () => {
+    const { ReceptFormular } = await import('../features/recipes/ReceptFormular.tsx')
+    rendera(<ReceptFormular />, '/recept/nytt')
+
+    await waitFor(() => expect(screen.getByText('Inga ingredienser tillagda än.')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /Lägg till ingrediens/ }))
+
+    await waitFor(() => expect(screen.getByLabelText('Ingrediens 1')).toBeTruthy())
+    expect(screen.getByLabelText('Mängd för ingrediens 1')).toBeTruthy()
+  })
+
+  it('raderar inte en inköpslista utan att fråga först', async () => {
+    const { InkopslistaOversikt } = await import(
+      '../features/shopping-list/InkopslistaOversikt.tsx'
+    )
+    rendera(<InkopslistaOversikt />, '/inkopslista')
+
+    await waitFor(() => expect(screen.getByText('Vecka 35')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /Ta bort Vecka 35/ }))
+
+    await waitFor(() => expect(screen.getByText('Ta bort listan?')).toBeTruthy())
+    expect(screen.getByRole('button', { name: /Ja, ta bort/ })).toBeTruthy()
+  })
+
+  it('visar översikten i stället för att hoppa in i en lista', async () => {
+    const { InkopslistaOversikt } = await import(
+      '../features/shopping-list/InkopslistaOversikt.tsx'
+    )
+    rendera(<InkopslistaOversikt />, '/inkopslista')
+
+    await waitFor(() => expect(screen.getByText('Inköpslistor')).toBeTruthy())
+    expect(screen.getByRole('button', { name: /Ny lista/ })).toBeTruthy()
   })
 })

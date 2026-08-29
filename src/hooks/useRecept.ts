@@ -7,7 +7,11 @@ import {
   hamtaLagningshistorik,
   hamtaRecept,
   markeraLagad,
+  skapaRecept,
+  sparaRecept,
+  taBortRecept,
   vaxlaFavorit,
+  type Receptutkast,
 } from '../services/recipes.ts'
 
 export function useRecept() {
@@ -60,4 +64,36 @@ export function useMarkeraLagad() {
       markeraLagad(hushallId!, user!.id, recipeId, servings),
     onSuccess: () => klient.invalidateQueries({ queryKey: ['lagningshistorik', hushallId] }),
   })
+}
+
+/**
+ * Skapa, ändra och radera recept.
+ *
+ * Allt nollställer både receptlistan och det enskilda receptet. Matsedeln
+ * invalideras också: den visar receptnamn, och ett raderat recept lämnar en
+ * tom dag efter sig.
+ */
+export function useReceptredigering() {
+  const { user } = useAuth()
+  const { hushallId } = useHushall()
+  const klient = useQueryClient()
+
+  const uppdatera = () => {
+    void klient.invalidateQueries({ queryKey: ['recept'] })
+    void klient.invalidateQueries({ queryKey: ['recept-detalj'] })
+    void klient.invalidateQueries({ queryKey: ['veckoplan'] })
+  }
+
+  return {
+    skapa: useMutation({
+      mutationFn: (utkast: Receptutkast) => skapaRecept(hushallId!, user!.id, utkast),
+      onSuccess: uppdatera,
+    }),
+    spara: useMutation({
+      mutationFn: ({ recipeId, utkast }: { recipeId: string; utkast: Receptutkast }) =>
+        sparaRecept(recipeId, utkast),
+      onSuccess: uppdatera,
+    }),
+    taBort: useMutation({ mutationFn: taBortRecept, onSuccess: uppdatera }),
+  }
 }

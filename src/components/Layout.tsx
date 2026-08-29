@@ -28,7 +28,6 @@ const HUVUDNAV: NavPost[] = [
 
 const OVRIGNAV: { till: string; etikett: string }[] = [
   { till: '/erbjudanden', etikett: 'Veckans fynd' },
-  { till: '/historik', etikett: 'Historik' },
   { till: '/hushall', etikett: 'Hushåll' },
   { till: '/installningar', etikett: 'Inställningar' },
 ]

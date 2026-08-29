@@ -38,8 +38,13 @@ const SkafferiSida = lazy(() =>
 const ErbjudandenSida = lazy(() =>
   import('./features/deals/ErbjudandenSida.tsx').then((m) => ({ default: m.ErbjudandenSida })),
 )
-const HistorikSida = lazy(() =>
-  import('./features/shopping-list/HistorikSida.tsx').then((m) => ({ default: m.HistorikSida })),
+const InkopslistaOversikt = lazy(() =>
+  import('./features/shopping-list/InkopslistaOversikt.tsx').then((m) => ({
+    default: m.InkopslistaOversikt,
+  })),
+)
+const ReceptFormular = lazy(() =>
+  import('./features/recipes/ReceptFormular.tsx').then((m) => ({ default: m.ReceptFormular })),
 )
 const InstallningarSida = lazy(() =>
   import('./features/settings/InstallningarSida.tsx').then((m) => ({
@@ -100,13 +105,15 @@ function Rutter() {
       <Route element={<SkyddadYta />}>
         <Route path="/" element={<OversiktSida />} />
         <Route path="/vecka" element={<VeckaSida />} />
-        <Route path="/inkopslista" element={<InkopslistaSida />} />
+        <Route path="/inkopslista" element={<InkopslistaOversikt />} />
         <Route path="/inkopslista/:listId" element={<InkopslistaSida />} />
         <Route path="/recept" element={<ReceptSida />} />
+        <Route path="/recept/nytt" element={<ReceptFormular />} />
         <Route path="/recept/:receptId" element={<ReceptDetalj />} />
+        <Route path="/recept/:receptId/andra" element={<ReceptFormular />} />
         <Route path="/skafferi" element={<SkafferiSida />} />
         <Route path="/erbjudanden" element={<ErbjudandenSida />} />
-        <Route path="/historik" element={<HistorikSida />} />
+        <Route path="/historik" element={<Navigate to="/inkopslista" replace />} />
         <Route path="/hushall" element={<HushallSida />} />
         <Route path="/installningar" element={<InstallningarSida />} />
         <Route path="/admin" element={<AdminSida />} />
