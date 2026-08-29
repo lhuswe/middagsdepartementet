@@ -22,9 +22,9 @@ jobs:
     name: Typer, lint och tester
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -48,14 +48,30 @@ jobs:
     needs: kontroll
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
+
+      # En tom secret ger ett bygge som startar och sedan visar en felsida.
+      # Bättre att stoppa här än att publicera något som inte fungerar.
+      - name: Kontrollera att konfigurationen finns
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          saknas=""
+          [ -z "$VITE_SUPABASE_URL" ] && saknas="$saknas VITE_SUPABASE_URL"
+          [ -z "$VITE_SUPABASE_ANON_KEY" ] && saknas="$saknas VITE_SUPABASE_ANON_KEY"
+          if [ -n "$saknas" ]; then
+            echo "::error::Saknade repository secrets:$saknas — se docs/DEPLOYMENT.md"
+            exit 1
+          fi
+          echo "Konfigurationen finns."
 
       - name: Bygg
         run: npm run build
@@ -76,7 +92,7 @@ jobs:
           fi
           echo "Inga hemligheter hittades i dist/."
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -89,4 +105,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

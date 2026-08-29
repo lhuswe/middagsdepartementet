@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
 import { App } from './App.tsx'
+import { Felgrans, Felsida } from './components/Felgrans.tsx'
+import { konfigurationsfel } from './lib/supabase.ts'
 import './index.css'
 
 /**
@@ -14,10 +16,26 @@ import './index.css'
  */
 const basename = import.meta.env.BASE_URL
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter basename={basename}>
-      <App />
-    </BrowserRouter>
-  </StrictMode>,
-)
+const rot = createRoot(document.getElementById('root')!)
+
+if (konfigurationsfel) {
+  // Saknas konfigurationen går appen inte att starta. Det ska sägas rakt ut,
+  // inte visas som en tom sida.
+  rot.render(
+    <Felsida
+      rubrik="Appen är inte färdigkonfigurerad"
+      beskrivning="Departementet når inte sin databas och kan därför inte visa något."
+      detalj={konfigurationsfel}
+    />,
+  )
+} else {
+  rot.render(
+    <StrictMode>
+      <Felgrans>
+        <BrowserRouter basename={basename}>
+          <App />
+        </BrowserRouter>
+      </Felgrans>
+    </StrictMode>,
+  )
+}
