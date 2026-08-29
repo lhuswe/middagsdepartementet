@@ -1,0 +1,12 @@
+# Radslut normaliseras till LF i historiken. Utan detta klagar Git på varje fil
+# på Windows, och en checkout på en annan maskin ger diffar utan innehåll.
+* text=auto eol=lf
+
+# Binärer ska inte röras.
+*.png binary
+*.woff2 binary
+
+# Genererad seed — visa den inte som en meningsfull diff i granskningar.
+supabase/migrations/*_seed_ingredients.sql linguist-generated=true
+supabase/migrations/*_seed_stores.sql linguist-generated=true
+package-lock.json linguist-generated=true

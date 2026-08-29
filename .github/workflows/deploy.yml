@@ -1,0 +1,92 @@
+name: Bygg och publicera
+
+on:
+  push:
+    branches: [main]
+  # Gör det möjligt att publicera om utan att pusha något.
+  workflow_dispatch:
+
+# Bara en publicering åt gången. Köade körningar avbryts inte mitt i — en halv
+# deploy är värre än en sen.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  kontroll:
+    name: Typer, lint och tester
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typkontroll
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # Live-testerna mot City Gross körs medvetet inte här. De beror på någon
+      # annans produktionsmiljö och skulle göra bygget instabilt av skäl som
+      # inte har med koden att göra. Kör dem manuellt med `npm run test:live`.
+      - name: Tester
+        run: npm test
+
+  bygg:
+    name: Bygg
+    needs: kontroll
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Bygg
+        run: npm run build
+        env:
+          # Publika värden. Skyddet ligger i RLS, inte i att nyckeln är hemlig —
+          # men de sätts som repository secrets ändå, så att en fork inte pekar
+          # på den här databasen.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Kontrollera att inga hemligheter följde med bygget
+        run: |
+          # Service role-nyckeln får aldrig hamna i en statisk build. Den här
+          # kontrollen är billig och fångar misstaget innan det publiceras.
+          if grep -rlE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' dist/; then
+            echo "::error::Bygget innehåller något som ser ut som en hemlig nyckel."
+            exit 1
+          fi
+          echo "Inga hemligheter hittades i dist/."
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  publicera:
+    name: Publicera till GitHub Pages
+    needs: bygg
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

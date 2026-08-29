@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Departementet för middagsfrågor</title>
+    <script>
+      /*
+       * GitHub Pages serverar den här filen för alla adresser som inte är
+       * riktiga filer. Sökvägen kodas in i query-strängen och skickas till
+       * index.html, som packar upp den igen. Utan det här går varje
+       * direktlänk och varje omladdning inne i appen sönder.
+       *
+       * SEGMENT ska vara antalet sökvägssegment i basadressen:
+       * 0 för en användarsajt, 1 för ett projektrepo (/<repo>/).
+       */
+      ;(function () {
+        var SEGMENT = 1
+        var l = window.location
+        var vag = l.pathname.split('/').slice(1 + SEGMENT).join('/')
+        l.replace(
+          l.protocol +
+            '//' +
+            l.hostname +
+            (l.port ? ':' + l.port : '') +
+            l.pathname.split('/').slice(0, 1 + SEGMENT).join('/') +
+            '/?/' +
+            vag.replace(/&/g, '~and~') +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash,
+        )
+      })()
+    </script>
+  </head>
+  <body>
+    <p>Omdirigerar…</p>
+  </body>
+</html>
