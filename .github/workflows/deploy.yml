@@ -84,12 +84,34 @@ jobs:
 
       - name: Kontrollera att inga hemligheter följde med bygget
         run: |
-          # Service role-nyckeln får aldrig hamna i en statisk build. Den här
-          # kontrollen är billig och fångar misstaget innan det publiceras.
-          if grep -rlE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' dist/; then
-            echo "::error::Bygget innehåller något som ser ut som en hemlig nyckel."
-            exit 1
+          # En service role-nyckel får aldrig hamna i en statisk build.
+          #
+          # Kontrollen letar efter nyckel*värden*, inte efter ord. En tidigare
+          # version sökte på strängen "sb_secret_" och slog ut bygget på
+          # supabase-js egen prefixkonstant — en larmfunktion som ropar på sig
+          # själv är värre än ingen alls.
+          fel=0
+
+          # Riktiga hemliga nycklar: prefix följt av faktiskt nyckelinnehåll.
+          if grep -rqE 'sb_secret_[A-Za-z0-9_-]{16,}' dist/; then
+            echo "::error::Bygget innehåller en hemlig Supabase-nyckel."
+            fel=1
           fi
+
+          # JWT:er vars payload säger service_role. Avkodas för att slippa
+          # gissa utifrån hur de ser ut.
+          for jwt in $(grep -rhoE 'eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}' dist/ | sort -u); do
+            payload=$(printf '%s' "$jwt" | cut -d. -f2)
+            avkodad=$(printf '%s==' "$payload" | base64 -d 2>/dev/null || true)
+            case "$avkodad" in
+              *service_role*)
+                echo "::error::Bygget innehåller en JWT med rollen service_role."
+                fel=1
+                ;;
+            esac
+          done
+
+          if [ "$fel" -ne 0 ]; then exit 1; fi
           echo "Inga hemligheter hittades i dist/."
 
       - uses: actions/upload-pages-artifact@v5
