@@ -48,6 +48,79 @@ döljs för andra, men det är inte döljandet som är skyddet.
 
 ---
 
+## Genomförd granskning
+
+En genomgång gjordes 2026-08-29. Den hittade ett allvarligt fel och ett antal
+mindre saker.
+
+### Privilegieeskalering i profiles (åtgärdad)
+
+RLS-policyn för `profiles` tillät en användare att uppdatera hela sin egen rad.
+`is_admin` är en kolumn på den raden, så följande fungerade:
+
+```sql
+update profiles set is_admin = true where id = <sitt eget id>
+```
+
+Det gav åtkomst till driftdata i `sync_runs` och möjlighet att trigga
+sortimentshämtningen mot City Gross.
+
+Grundorsaken är en gränsdragning som är lätt att missa: **RLS avgör vilka rader
+man får röra, inte vilka kolumner.** Policyn såg helt korrekt ut, och gör det
+fortfarande.
+
+Åtgärdat med kolumnrättigheter. Tabellnivå-UPDATE är indragen från
+`authenticated`, och bara de kolumner användaren faktiskt äger är återgivna.
+`is_admin`, `id` och `created_at` kan nu enbart ändras av `service_role`.
+
+Verifierat åt båda hållen: eskaleringsförsöket avvisas med `permission denied`,
+och vanliga profiländringar fungerar oförändrat.
+
+### Content Security Policy (tillagd)
+
+Sätts som meta-tagg i `index.html`, eftersom GitHub Pages inte kan sätta
+svarsheader. `script-src` klarar sig utan `'unsafe-inline'` tack vare att
+omdirigeringsskriptet flyttades till `public/spa-redirect.js`.
+
+Verifierad i webbläsare: en bild från City Gross släpps igenom, en bild från
+annan domän blockeras av `img-src`, och appen själv ger noll överträdelser.
+
+**Känd lucka:** `frame-ancestors` fungerar inte via meta-tagg, bara som header.
+Klickjackningsskydd saknas därför. Det kräver en värd som kan sätta headers.
+
+### CORS-allowlist (tillagd)
+
+Edge Functions svarade tidigare med `access-control-allow-origin: *`. Det var
+inte direkt utnyttjbart, eftersom funktionerna kräver en användares JWT som en
+annan webbplats inte kommer åt, men en allowlist kostar ingenting. Nu speglas
+bara kända ursprung: localhost i utveckling och `*.github.io`. Fler kan läggas
+till via secreten `TILLATNA_URSPRUNG`.
+
+### Spärr mot parallella synkkörningar (tillagd)
+
+Upprepade klick på inhämtningsknappen kunde starta flera samtidiga hämtningar.
+Fördröjningen på en sekund mellan anrop gäller per körning, så tre parallella
+körningar innebar tre gånger så mycket trafik mot City Gross. Funktionen svarar
+nu 409 om en körning redan pågår för butiken.
+
+### Genomgånget utan anmärkning
+
+- Ingen `dangerouslySetInnerHTML`, `innerHTML` eller `eval` någonstans
+- Inga externa CDN, inga tredjepartsspårare
+- Data från City Gross renderas bara i `img src`, och URL:en är alltid prefixad
+  med deras domän
+- Inga `target="_blank"` utan `rel`
+- Ingen direkt användning av `localStorage`; sessionen sköts av Supabase
+- Samtliga 18 tabeller har RLS påslaget med policyer som täcker rätt kommandon
+
+### Kvar att göra, kräver panelen
+
+**Leaked password protection är avstängd.** Supabase kan kontrollera lösenord mot
+HaveIBeenPwned. Slå på under Authentication, Policies. Det går inte att göra via
+API:et med de verktyg som finns här.
+
+---
+
 ## Verifiering
 
 RLS-policyer som *ser* rätt ut men läcker är hela poängen med att testa dem.
@@ -60,6 +133,15 @@ och frågade databasen som respektive användare:
 | Receptrader (via förälderpolicy) | 1 | 0 |
 | Profil | 1 | 0 |
 | Delad referensdata | 1 | - |
+
+Kolumnskyddet på `profiles` bör testas på samma sätt vid schemaändringar:
+
+```sql
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"<uuid>","role":"authenticated"}';
+update public.profiles set is_admin = true where id = '<uuid>';
+-- Ska ge: permission denied for table profiles
+```
 
 Att köra om den vid schemaändringar är billigt. Använd en transaktion med
 `set local role authenticated` och `set local request.jwt.claims`, och avsluta
@@ -132,7 +214,8 @@ mot City Gross.
   självregistrering slås på behöver `is_admin` och åtkomsten till `sync_runs`
   ses över.
 - Modellen förutsätter en användare per hushåll. Delade hushåll med flera konton
-  är inte implementerat.
+  är inte implementerat. Se `docs/HUSHALL.md` för ett förslag, och notera att
+  det förslaget ändrar RLS-modellen i grunden.
 - City Gross-integrationen läser endast publika, oautentiserade endpoints. Ingen
   inloggning, CAPTCHA eller bot-skydd kringgås. Se
   [CITYGROSS-INTEGRATION.md](CITYGROSS-INTEGRATION.md).

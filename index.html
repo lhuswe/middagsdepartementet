@@ -3,33 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!--
+      Content Security Policy.
+
+      Sätts som meta-tagg eftersom GitHub Pages inte kan sätta svarsheader.
+      Det har en känd lucka: frame-ancestors fungerar inte via meta, så
+      klickjackningsskyddet saknas. Se docs/SECURITY.md.
+
+      script-src klarar sig utan 'unsafe-inline' tack vare att
+      omdirigeringsskriptet ligger i egen fil. style-src behöver det däremot,
+      eftersom React sätter style-attribut direkt på element.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https://www.citygross.se;
+        font-src 'self';
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+        manifest-src 'self';
+        worker-src 'self';
+        upgrade-insecure-requests;
+      "
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="theme-color" content="#1f4e5f" />
-    <meta name="description" content="Samordnad livsmedelsförsörjning för hushållet. Veckomatsedel och inköpslista mot City Gross." />
+    <meta
+      name="description"
+      content="Samordnad livsmedelsförsörjning för hushållet. Veckomatsedel och inköpslista mot City Gross."
+    />
     <title>Departementet för middagsfrågor</title>
-    <script>
-      /*
-       * GitHub Pages har ingen server som kan svara på djuplänkar. 404.html
-       * kodar in sökvägen i query-strängen och skickar hit; här packas den upp
-       * igen innan React Router startar, så adressfältet ser normalt ut.
-       */
-      ;(function () {
-        var sokning = window.location.search
-        if (sokning.indexOf('?/') !== 0) return
-        var vag = sokning
-          .slice(2)
-          .split('&')
-          .map(function (del) {
-            return del.replace(/~and~/g, '&')
-          })
-        window.history.replaceState(
-          null,
-          '',
-          window.location.pathname.replace(/\/$/, '') + '/' + vag[0] + (vag[1] ? '?' + vag[1] : '') + window.location.hash,
-        )
-      })()
-    </script>
+
+    <script src="./spa-redirect.js"></script>
   </head>
   <body>
     <div id="root"></div>

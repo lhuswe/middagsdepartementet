@@ -36,19 +36,54 @@ const MAX_PAGES_PER_CATEGORY = 40
 /** Hur många rader som skrivs till Postgres åt gången. */
 const UPSERT_BATCH = 500
 
+/**
+ * Hur länge en körning får stå som pågående innan den räknas som död.
+ * En körning tar minuter, inte timmar.
+ */
+const PAGAENDE_TIMEOUT_MS = 60 * 60 * 1000
+
 /** Butiksnumret går rakt in i en URL mot City Gross. Bara siffror släpps in. */
 const GILTIGT_BUTIKSNUMMER = /^\d{3,6}$/
 
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, cors: Record<string, string>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json', ...CORS },
+    headers: { 'content-type': 'application/json', ...cors },
   })
 
-const CORS: Record<string, string> = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
-  'access-control-allow-methods': 'POST, OPTIONS',
+/**
+ * Tillatna ursprung.
+ *
+ * Funktionerna kraver en Authorization-header med en anvandares JWT, som en
+ * annan webbplats inte kan komma at. CORS ar darfor inte det som skyddar dem.
+ * Men en allowlist kostar ingenting och tar bort en klass av misstag, sa den
+ * finns anda. Satt TILLATNA_URSPRUNG som secret for att lagga till fler.
+ */
+const STANDARD_URSPRUNG = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+]
+
+function corsFor(request: Request): Record<string, string> {
+  const extra = (Deno.env.get('TILLATNA_URSPRUNG') ?? '')
+    .split(',')
+    .map((rad) => rad.trim())
+    .filter(Boolean)
+
+  const tillatna = [...STANDARD_URSPRUNG, ...extra]
+  const ursprung = request.headers.get('Origin') ?? ''
+
+  // github.io-sajter tillats via mönster, sa att repot kan bytas namn utan
+  // att funktionen behover deployas om.
+  const godkand =
+    tillatna.includes(ursprung) || /^https:\/\/[a-z0-9-]+\.github\.io$/i.test(ursprung)
+
+  return {
+    'access-control-allow-origin': godkand ? ursprung : STANDARD_URSPRUNG[0],
+    'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
+    'access-control-allow-methods': 'POST, OPTIONS',
+    vary: 'Origin',
+  }
 }
 
 function toRow(product: Product) {
@@ -220,23 +255,24 @@ async function valjButiker(
 }
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const cors = corsFor(request)
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  if (!serviceKey || !supabaseUrl) return json({ error: 'Funktionen är felkonfigurerad.' }, 500)
+  if (!serviceKey || !supabaseUrl) return json({ error: 'Funktionen är felkonfigurerad.' }, cors, 500)
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
   const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!token) return json({ error: 'Otillåten.' }, 401)
+  if (!token) return json({ error: 'Otillåten.' }, cors, 401)
 
   // Cron kommer med service role-nyckeln. Allt annat måste vara en admin.
   const arCron = token === serviceKey
 
   if (!arCron) {
     const { data: userData, error: userError } = await admin.auth.getUser(token)
-    if (userError || !userData.user) return json({ error: 'Otillåten.' }, 401)
+    if (userError || !userData.user) return json({ error: 'Otillåten.' }, cors, 401)
 
     const { data: profil } = await admin
       .from('profiles')
@@ -245,7 +281,7 @@ Deno.serve(async (request) => {
       .maybeSingle()
 
     if (!(profil as { is_admin?: boolean } | null)?.is_admin) {
-      return json({ error: 'Behörighet saknas.' }, 403)
+      return json({ error: 'Behörighet saknas.' }, cors, 403)
     }
   }
 
@@ -267,7 +303,38 @@ Deno.serve(async (request) => {
         error:
           'Ingen butik att hämta. Ange storeNumber, sätt CITYGROSS_STORE_NUMBER, eller välj butik i en profil.',
       },
+      cors,
       400,
+    )
+  }
+
+  /*
+   * Vägra starta om en körning redan pågår.
+   *
+   * Utan spärren kan upprepade klick på knappen starta flera samtidiga
+   * hämtningar mot City Gross. Fördröjningen på en sekund mellan anrop gäller
+   * per körning, inte mellan körningar, så tre parallella körningar innebär tre
+   * gånger så mycket trafik mot någon annans servrar.
+   *
+   * Tidsgränsen finns för att en körning som dött utan att skriva klart inte
+   * ska blockera för alltid.
+   */
+  const grans = new Date(Date.now() - PAGAENDE_TIMEOUT_MS).toISOString()
+  const { data: pagaende } = await admin
+    .from('sync_runs')
+    .select('store_number')
+    .eq('status', 'running')
+    .gt('started_at', grans)
+    .in('store_number', butiker)
+
+  if (pagaende && pagaende.length > 0) {
+    return json(
+      {
+        error: 'En inhämtning pågår redan för butiken. Vänta tills den är klar.',
+        butiker: (pagaende as { store_number: string }[]).map((rad) => rad.store_number),
+      },
+      cors,
+      409,
     )
   }
 
@@ -285,5 +352,5 @@ Deno.serve(async (request) => {
     categoriesProcessed: resultat[0]?.categoriesProcessed ?? 0,
     failures: resultat.flatMap((rad) => rad.failures),
     perButik: resultat,
-  })
+  }, cors)
 })

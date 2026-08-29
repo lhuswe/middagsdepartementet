@@ -19,16 +19,45 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { CityGrossProvider } from './_lib/citygross.ts'
 import type { Product } from './_lib/types.ts'
 
-const CORS: Record<string, string> = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
-  'access-control-allow-methods': 'POST, OPTIONS',
+/**
+ * Tillatna ursprung.
+ *
+ * Funktionerna kraver en Authorization-header med en anvandares JWT, som en
+ * annan webbplats inte kan komma at. CORS ar darfor inte det som skyddar dem.
+ * Men en allowlist kostar ingenting och tar bort en klass av misstag, sa den
+ * finns anda. Satt TILLATNA_URSPRUNG som secret for att lagga till fler.
+ */
+const STANDARD_URSPRUNG = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+]
+
+function corsFor(request: Request): Record<string, string> {
+  const extra = (Deno.env.get('TILLATNA_URSPRUNG') ?? '')
+    .split(',')
+    .map((rad) => rad.trim())
+    .filter(Boolean)
+
+  const tillatna = [...STANDARD_URSPRUNG, ...extra]
+  const ursprung = request.headers.get('Origin') ?? ''
+
+  // github.io-sajter tillats via mönster, sa att repot kan bytas namn utan
+  // att funktionen behover deployas om.
+  const godkand =
+    tillatna.includes(ursprung) || /^https:\/\/[a-z0-9-]+\.github\.io$/i.test(ursprung)
+
+  return {
+    'access-control-allow-origin': godkand ? ursprung : STANDARD_URSPRUNG[0],
+    'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
+    'access-control-allow-methods': 'POST, OPTIONS',
+    vary: 'Origin',
+  }
 }
 
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, cors: Record<string, string>, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json', ...CORS },
+    headers: { 'content-type': 'application/json', ...cors },
   })
 
 /** Så många träffar som mest. Räcker gott för en produktväljare. */
@@ -61,20 +90,21 @@ function toRow(product: Product) {
 }
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const cors = corsFor(request)
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  if (!serviceKey || !supabaseUrl) return json({ error: 'Funktionen är felkonfigurerad.' }, 500)
+  if (!serviceKey || !supabaseUrl) return json({ error: 'Funktionen är felkonfigurerad.' }, cors, 500)
 
   const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!token) return json({ error: 'Otillåten.' }, 401)
+  if (!token) return json({ error: 'Otillåten.' }, cors, 401)
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
   // Vem användaren är läses ur JWT:n, aldrig ur anropets kropp.
   const { data: userData, error: userError } = await admin.auth.getUser(token)
-  if (userError || !userData.user) return json({ error: 'Otillåten.' }, 401)
+  if (userError || !userData.user) return json({ error: 'Otillåten.' }, cors, 401)
 
   let query = ''
   let storeNumber = ''
@@ -86,14 +116,14 @@ Deno.serve(async (request) => {
       storeNumber = body.storeNumber
     }
   } catch {
-    return json({ error: 'Ogiltig förfrågan.' }, 400)
+    return json({ error: 'Ogiltig förfrågan.' }, cors, 400)
   }
 
   // Ingen standardbutik: priser är butiksspecifika, och en gissning ger
   // sortiment från fel stad.
-  if (!storeNumber) return json({ error: 'storeNumber saknas.' }, 400)
+  if (!storeNumber) return json({ error: 'storeNumber saknas.' }, cors, 400)
 
-  if (query.length < 2) return json({ products: [] })
+  if (query.length < 2) return json({ products: [] }, cors)
 
   try {
     const provider = new CityGrossProvider({ minRequestIntervalMs: 0 })
@@ -107,10 +137,10 @@ Deno.serve(async (request) => {
       await admin.from('products').upsert(products.map(toRow), { onConflict: 'gtin,store_number' })
     }
 
-    return json({ products })
+    return json({ products }, cors)
   } catch (error) {
     // Ett misslyckat direktanrop är inte kritiskt - appen har den synkade
     // katalogen att falla tillbaka på. Felet rapporteras rakt, utan gissningar.
-    return json({ error: (error as Error).message, products: [] }, 502)
+    return json({ error: (error as Error).message, products: [] }, cors, 502)
   }
 })

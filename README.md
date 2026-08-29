@@ -172,6 +172,7 @@ Läs vidare i [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | [DATABASE.md](docs/DATABASE.md) | Schema och varför det ser ut som det gör |
 | [SECURITY.md](docs/SECURITY.md) | RLS-modell, hemligheter, antaganden |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | GitHub Pages, Edge Functions, schemalagd synk |
+| [HUSHALL.md](docs/HUSHALL.md) | Förslag: flera personer på samma inköpslista |
 
 ## Kända begränsningar
 
