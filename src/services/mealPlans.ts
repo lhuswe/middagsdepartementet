@@ -12,6 +12,7 @@ import type { PlannedMeal } from '../domain/aggregate.ts'
 import type { Recipe } from '../domain/types.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { MealPlanItemRow, MealPlanRow } from '../types/database.ts'
+import type { HouseholdId } from '../types/ids.ts'
 
 export type Maltidstyp = 'breakfast' | 'lunch' | 'dinner'
 
@@ -41,7 +42,7 @@ export const VECKODAGAR = [
 ] as const
 
 export async function hamtaVeckoplan(
-  householdId: string,
+  householdId: HouseholdId,
   weekStart: string,
 ): Promise<Veckoplan | null> {
   const { data, error } = await supabase
@@ -60,7 +61,7 @@ export async function hamtaVeckoplan(
   return { plan, poster: poster ?? [] }
 }
 
-async function sakerstallPlan(householdId: string, weekStart: string): Promise<MealPlanRow> {
+async function sakerstallPlan(householdId: HouseholdId, weekStart: string): Promise<MealPlanRow> {
   const befintlig = await hamtaVeckoplan(householdId, weekStart)
   if (befintlig) return befintlig.plan
 
@@ -79,7 +80,7 @@ async function sakerstallPlan(householdId: string, weekStart: string): Promise<M
  * vad "generera ny matsedel" betyder, och att smyga in dubbletter vore värre.
  */
 export async function sparaVeckoplan(
-  householdId: string,
+  householdId: HouseholdId,
   weekStart: string,
   meals: PlannedMeal[],
   recipeIdFor: (recipe: Recipe) => string,
@@ -110,7 +111,7 @@ export async function sparaVeckoplan(
 }
 
 export async function sattMaltid(
-  householdId: string,
+  householdId: HouseholdId,
   weekStart: string,
   servedOn: string,
   recipeId: string | null,
@@ -146,7 +147,7 @@ export async function sattMaltid(
 
 /** Kopierar en veckas middagar till en annan vecka. */
 export async function kopieraVecka(
-  householdId: string,
+  householdId: HouseholdId,
   franWeekStart: string,
   tillWeekStart: string,
 ): Promise<number> {

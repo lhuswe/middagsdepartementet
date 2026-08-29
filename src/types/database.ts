@@ -14,6 +14,8 @@
  * camelCase sker i `src/services/`, inte här - det är gränsen mellan lagren.
  */
 
+import type { HouseholdId } from './ids.ts'
+
 export type ShoppingListItemStatus = 'ready' | 'needs-choice' | 'unavailable' | 'unresolved'
 export type MatchConfidenceRow = 'confirmed' | 'probable' | 'ambiguous' | 'unavailable' | 'unknown'
 
@@ -81,7 +83,7 @@ export type ProfileRow = {
 }
 
 export type HouseholdRow = {
-  id: string
+  id: HouseholdId
   name: string
   store_number: string | null
   adults: number

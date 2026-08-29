@@ -7,17 +7,17 @@ import { Link } from 'react-router-dom'
 import { SidHuvud } from '../../components/Layout.tsx'
 import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Badge, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
-import { useAuth } from '../auth/auth-context.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { hamtaListor } from '../../services/shoppingLists.ts'
 import { formatKrRound } from '../../lib/utils.ts'
 
 export function HistorikSida() {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
 
   const listor = useQuery({
-    queryKey: ['listor', user?.id],
-    queryFn: () => hamtaListor(user!.id, 50),
-    enabled: Boolean(user?.id),
+    queryKey: ['listor', hushallId],
+    queryFn: () => hamtaListor(hushallId!, 50),
+    enabled: Boolean(hushallId),
   })
 
   const statistik = useMemo(() => {

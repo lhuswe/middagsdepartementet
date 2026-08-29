@@ -265,8 +265,39 @@ export function planeraVecka(recipes: Recipe[], options: PlanOptions): PlanResul
 }
 
 /**
- * Byter ut en enskild dag mot ett annat recept, med hänsyn till resten av
- * veckan. Används av "slumpa om den här dagen" i planeraren.
+ * Väljer ett recept för en enskild dag, med hänsyn till resten av veckan.
+ *
+ * Fungerar både för en dag som redan har en rätt och för en tom dag. Den
+ * skillnaden spelar roll: efter att man tagit bort måndagen ska det gå att
+ * fylla den igen, och tidigare gick det inte.
+ *
+ * Returnerar `null` när det inte finns någon rätt att välja - alla recept
+ * filtrerades bort, eller det enda som återstår är just det som redan ligger
+ * på dagen.
+ */
+export function valjMaltidFor(
+  meals: PlannedMeal[],
+  slotId: string,
+  recipes: Recipe[],
+  options: PlanOptions,
+): Recipe | null {
+  const nuvarande = meals.find((meal) => meal.slotId === slotId)
+  const ovriga = meals.filter((meal) => meal.slotId !== slotId).map((meal) => meal.recipe)
+
+  const pool = kandidater(recipes, options).filter((recipe) => recipe.id !== nuvarande?.recipe.id)
+  if (pool.length === 0) return null
+
+  const slumpa = slump(options.seed ?? Date.now())
+  const bast = pool
+    .map((recipe) => poangsatt(recipe, ovriga, options, slumpa()))
+    .sort((a, b) => b.poang - a.poang)[0]
+
+  return bast?.recipe ?? null
+}
+
+/**
+ * Byter ut, eller fyller i, en enskild dag. Används av "slumpa om den här
+ * dagen" i planeraren.
  */
 export function bytUtMaltid(
   meals: PlannedMeal[],
@@ -274,23 +305,18 @@ export function bytUtMaltid(
   recipes: Recipe[],
   options: PlanOptions,
 ): PlannedMeal[] {
+  const recipe = valjMaltidFor(meals, slotId, recipes, options)
+  if (!recipe) return meals
+
   const index = meals.findIndex((meal) => meal.slotId === slotId)
-  if (index === -1) return meals
-
-  const ovriga = meals.filter((_, position) => position !== index).map((meal) => meal.recipe)
-  const pool = kandidater(recipes, options).filter(
-    (recipe) => recipe.id !== meals[index]!.recipe.id,
-  )
-  if (pool.length === 0) return meals
-
-  const slumpa = slump(options.seed ?? Date.now())
-  const bast = pool
-    .map((recipe) => poangsatt(recipe, ovriga, options, slumpa()))
-    .sort((a, b) => b.poang - a.poang)[0]
-
-  if (!bast) return meals
+  if (index === -1) {
+    // Tom dag: lägg till och håll veckan i datumordning.
+    return [...meals, { recipe, servings: options.servings, slotId }].sort((a, b) =>
+      (a.slotId ?? '').localeCompare(b.slotId ?? ''),
+    )
+  }
 
   const nya = [...meals]
-  nya[index] = { ...meals[index]!, recipe: bast.recipe }
+  nya[index] = { ...meals[index]!, recipe }
   return nya
 }

@@ -9,7 +9,7 @@ import { Button } from '../../components/ui/button.tsx'
 import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning, TomtLage } from '../../components/ui/feedback.tsx'
 import type { PlannedMeal } from '../../domain/aggregate.ts'
-import { bytUtMaltid, planeraVecka, type PlanOptions } from '../../domain/planner.ts'
+import { bytUtMaltid, planeraVecka, valjMaltidFor, type PlanOptions } from '../../domain/planner.ts'
 import type { Recipe } from '../../domain/types.ts'
 import { useHushall, useHushallsallergier } from '../../hooks/useHushall.ts'
 import { useProfil } from '../../hooks/useProfil.ts'
@@ -178,6 +178,14 @@ export function VeckaSida() {
         ) : null}
       </div>
 
+      {sparaVecka.error || sattMaltid.error ? (
+        <Notis ton="fel" className="mb-4" titel="Matsedeln kunde inte sparas">
+          {(sparaVecka.error ?? sattMaltid.error) instanceof Error
+            ? (sparaVecka.error ?? sattMaltid.error)!.message
+            : 'Okänt fel. Försök igen.'}
+        </Notis>
+      ) : null}
+
       {utkast ? (
         <Notis ton="varning" className="mb-4">
           Matsedeln är ett förslag och inte sparad än.
@@ -204,7 +212,24 @@ export function VeckaSida() {
                 meal={meal}
                 onSlumpa={() => {
                   if (!recept) return
-                  setUtkast(bytUtMaltid(maltider, slotId, recept, { ...planOptions, seed: Date.now() }))
+                  const nyaOptions = { ...planOptions, seed: Date.now() }
+
+                  // Är matsedeln redan sparad ska en ändrad dag sparas direkt.
+                  // Att i stället flippa hela veckan till utkast var förvirrande:
+                  // banderollen påstod att ingenting var sparat, fast allt var det.
+                  if (!utkast) {
+                    const valt = valjMaltidFor(maltider, slotId, recept, nyaOptions)
+                    if (valt) {
+                      sattMaltid.mutate({
+                        servedOn: datum,
+                        recipeId: valt.id,
+                        servings: meal?.servings ?? portioner,
+                      })
+                    }
+                    return
+                  }
+
+                  setUtkast(bytUtMaltid(utkast, slotId, recept, nyaOptions))
                 }}
                 onTaBort={() => {
                   if (utkast) {

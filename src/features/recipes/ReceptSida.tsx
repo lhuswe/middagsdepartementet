@@ -60,6 +60,8 @@ export function ReceptSida() {
     })
   }, [recept, fraga, aktivaFilter, baraFavoriter, favoriter])
 
+  const ofullstandiga = (recept ?? []).filter((item) => item.ingredients.length === 0).length
+
   if (isLoading) return <SidLaddning />
 
   return (
@@ -68,6 +70,33 @@ export function ReceptSida() {
         rubrik="Recept"
         underrubrik={`${recept?.length ?? 0} rätter i samlingen`}
       />
+
+      {/*
+        * Ett recept utan ingredienser går inte att handla för, och felet syns
+        * inte förrän inköpslistan kommer ut tom. Erbjud en väg tillbaka i
+        * stället för att låta samlingen se hel ut.
+        */}
+      {ofullstandiga > 0 ? (
+        <Notis ton="varning" className="mb-4" titel="Recept utan ingredienser">
+          {ofullstandiga} av {recept?.length ?? 0} recept saknar sina ingredienser och kan
+          därför inte ge något underlag till inköpslistan.
+          <span className="mt-3 block">
+            <Button
+              size="sm"
+              disabled={importera.isPending}
+              onClick={() => importera.mutate()}
+            >
+              {importera.isPending ? 'Kompletterar…' : 'Komplettera recepten'}
+            </Button>
+          </span>
+        </Notis>
+      ) : null}
+
+      {importera.error ? (
+        <Notis ton="fel" className="mb-4" titel="Recepten kunde inte hämtas">
+          {importera.error instanceof Error ? importera.error.message : 'Okänt fel.'}
+        </Notis>
+      ) : null}
 
       {recept && recept.length === 0 ? (
         <TomtLage

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { SidHuvud } from '../../components/Layout.tsx'
@@ -107,10 +107,21 @@ export function InkopslistaSida() {
       setFel(error instanceof Error ? error.message : 'Listan kunde inte skapas.'),
   })
 
-  // Veckoplaneraren länkar hit med ?generera=1.
+  /*
+   * Veckoplaneraren länkar hit med ?generera=1.
+   *
+   * Spärren behövs. Effekten beror på tre frågeresultat, och deras identitet
+   * byts vid varje omhämtning - att rensa sökparametern räcker inte, eftersom
+   * effekten hinner köra igen innan den nya URL:en slagit igenom. Resultatet
+   * blev flera identiska listor skapade inom samma sekund.
+   */
+  const genereringStartad = useRef(false)
+
   useEffect(() => {
     if (sokparametrar.get('generera') !== '1') return
+    if (genereringStartad.current) return
     if (!hushall || !recept || !plan) return
+    genereringStartad.current = true
     sattSokparametrar({}, { replace: true })
     generera.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps

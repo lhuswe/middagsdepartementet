@@ -10,13 +10,13 @@ import { SelectField, TextField } from '../../components/ui/form.tsx'
 import { INGREDIENTS, getIngredient } from '../../domain/ingredients.ts'
 import { SHOPPING_CATEGORY_LABELS, type RecipeUnit, type ShoppingCategory } from '../../domain/types.ts'
 import { formatQuantity } from '../../domain/units.ts'
-import { useAuth } from '../auth/auth-context.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { hamtaSkafferi, sparaSkafferipost, taBortSkafferipost, utgarSnart } from '../../services/pantry.ts'
 
 const ENHETER: RecipeUnit[] = ['g', 'kg', 'ml', 'dl', 'l', 'st', 'msk', 'tsk']
 
 export function SkafferiSida() {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   const klient = useQueryClient()
 
   const [ingrediens, setIngrediens] = useState('')
@@ -26,14 +26,14 @@ export function SkafferiSida() {
   const [fel, setFel] = useState<string | null>(null)
 
   const skafferi = useQuery({
-    queryKey: ['skafferi', user?.id],
-    queryFn: () => hamtaSkafferi(user!.id),
-    enabled: Boolean(user?.id),
+    queryKey: ['skafferi', hushallId],
+    queryFn: () => hamtaSkafferi(hushallId!),
+    enabled: Boolean(hushallId),
   })
 
   const spara = useMutation({
     mutationFn: () =>
-      sparaSkafferipost(user!.id, ingrediens, Number(mangd), enhet, {
+      sparaSkafferipost(hushallId!, ingrediens, Number(mangd), enhet, {
         expiresOn: utgangsdatum || null,
       }),
     onSuccess: () => {
@@ -48,7 +48,7 @@ export function SkafferiSida() {
   })
 
   const taBort = useMutation({
-    mutationFn: (ingredientId: string) => taBortSkafferipost(user!.id, ingredientId),
+    mutationFn: (ingredientId: string) => taBortSkafferipost(hushallId!, ingredientId),
     onSuccess: () => klient.invalidateQueries({ queryKey: ['skafferi'] }),
   })
 

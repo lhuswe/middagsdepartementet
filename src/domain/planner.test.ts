@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { bytUtMaltid, kandidater, planeraVecka, type PlanOptions } from './planner.ts'
+import { bytUtMaltid, kandidater, planeraVecka, valjMaltidFor, type PlanOptions } from './planner.ts'
 import { SEED_RECIPES } from './seed-recipes.ts'
 
 const MANDAG = new Date('2026-08-31T12:00:00+02:00')
@@ -125,8 +125,51 @@ describe('bytUtMaltid', () => {
     expect(nya[6]!.recipe.id).toBe(meals[6]!.recipe.id)
   })
 
-  it('lämnar planen orörd för en okänd dag', () => {
+  /*
+   * Den här gick tidigare inte. `bytUtMaltid` letade upp dagen och gav upp när
+   * den inte fanns, så en dag man just tagit bort kunde aldrig fyllas igen.
+   * Gränssnittet såg ut att göra något - matsedeln markerades som ett osparat
+   * utkast - men dagen förblev tom.
+   */
+  it('fyller en dag som tömts i stället för att ge upp', () => {
     const { meals } = planeraVecka(SEED_RECIPES, options())
-    expect(bytUtMaltid(meals, 'finns-inte', SEED_RECIPES, options())).toBe(meals)
+    const tomd = meals[2]!.slotId!
+    const utan = meals.filter((meal) => meal.slotId !== tomd)
+
+    const nya = bytUtMaltid(utan, tomd, SEED_RECIPES, options())
+
+    expect(nya).toHaveLength(meals.length)
+    expect(nya.find((meal) => meal.slotId === tomd)).toBeDefined()
+    // Veckan ska fortfarande ligga i datumordning.
+    expect(nya.map((meal) => meal.slotId)).toEqual([...nya.map((meal) => meal.slotId)].sort())
+  })
+
+  it('lämnar planen orörd när inget recept är valbart', () => {
+    const { meals } = planeraVecka(SEED_RECIPES, options())
+    expect(bytUtMaltid(meals, meals[0]!.slotId!, [], options())).toBe(meals)
+  })
+})
+
+describe('valjMaltidFor', () => {
+  it('väljer något annat än det som redan ligger på dagen', () => {
+    const { meals } = planeraVecka(SEED_RECIPES, options())
+    const slotId = meals[2]!.slotId!
+
+    const valt = valjMaltidFor(meals, slotId, SEED_RECIPES, options())
+
+    expect(valt).not.toBeNull()
+    expect(valt!.id).not.toBe(meals[2]!.recipe.id)
+  })
+
+  it('väljer även för en tom dag', () => {
+    const { meals } = planeraVecka(SEED_RECIPES, options())
+    const utan = meals.slice(1)
+
+    expect(valjMaltidFor(utan, meals[0]!.slotId!, SEED_RECIPES, options())).not.toBeNull()
+  })
+
+  it('svarar null när det inte finns något att välja', () => {
+    const { meals } = planeraVecka(SEED_RECIPES, options())
+    expect(valjMaltidFor(meals, meals[0]!.slotId!, [], options())).toBeNull()
   })
 })

@@ -22,6 +22,7 @@ import type { Product } from '../domain/types.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { HouseholdRow, ShoppingListItemRow, ShoppingListRow } from '../types/database.ts'
 import { hamtaKandidater } from './catalog.ts'
+import type { HouseholdId } from '../types/ids.ts'
 
 export interface GenereringsResultat {
   lista: ShoppingList
@@ -30,7 +31,7 @@ export interface GenereringsResultat {
 
 /** Hushållets sparade produktval och favoriter för butiken. */
 async function hamtaMappningar(
-  householdId: string,
+  householdId: HouseholdId,
   storeNumber: string,
 ): Promise<{ sparade: Record<string, string>; favoriter: Record<string, string> }> {
   const [mappningar, favoriter] = await Promise.all([
@@ -213,7 +214,7 @@ export async function hamtaLista(listId: string): Promise<SparadLista | null> {
   return { lista, poster: (poster ?? []).sort((a, b) => a.sort_order - b.sort_order) }
 }
 
-export async function hamtaListor(householdId: string, limit = 20): Promise<ShoppingListRow[]> {
+export async function hamtaListor(householdId: HouseholdId, limit = 20): Promise<ShoppingListRow[]> {
   const { data, error } = await supabase
     .from('shopping_lists')
     .select('*')
@@ -225,7 +226,7 @@ export async function hamtaListor(householdId: string, limit = 20): Promise<Shop
   return data ?? []
 }
 
-export async function senasteOppnaLista(householdId: string): Promise<ShoppingListRow | null> {
+export async function senasteOppnaLista(householdId: HouseholdId): Promise<ShoppingListRow | null> {
   const { data, error } = await supabase
     .from('shopping_lists')
     .select('*')
@@ -301,7 +302,7 @@ export async function sattListStatus(
  * samma ingrediens `confirmed` i stället för att fråga igen.
  */
 export async function sparaProduktval(
-  householdId: string,
+  householdId: HouseholdId,
   ingredientId: string,
   storeNumber: string,
   gtin: string,
@@ -314,7 +315,7 @@ export async function sparaProduktval(
 }
 
 export async function sparaFavoritprodukt(
-  householdId: string,
+  householdId: HouseholdId,
   ingredientId: string,
   storeNumber: string,
   gtin: string,

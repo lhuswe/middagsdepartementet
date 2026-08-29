@@ -9,6 +9,7 @@ import { Card, CardBody } from '../../components/ui/card.tsx'
 import { Badge, Notis, SidLaddning } from '../../components/ui/feedback.tsx'
 import { TextField } from '../../components/ui/form.tsx'
 import { useAuth } from '../auth/auth-context.ts'
+import type { HouseholdId } from '../../types/ids.ts'
 import {
   useHushall,
   useHushallsallergier,
@@ -163,7 +164,7 @@ function Medlemslista() {
   )
 }
 
-function Inbjudningar({ hushallId, userId }: { hushallId: string; userId: string }) {
+function Inbjudningar({ hushallId, userId }: { hushallId: HouseholdId; userId: string }) {
   const { data: inbjudningar, skapa, aterkalla } = useInbjudningar()
   const [kopierad, setKopierad] = useState<string | null>(null)
 

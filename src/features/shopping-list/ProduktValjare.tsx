@@ -6,7 +6,7 @@ import { Notis, Spinner } from '../../components/ui/feedback.tsx'
 import { getIngredient } from '../../domain/ingredients.ts'
 import { calculatePrice } from '../../domain/promotions.ts'
 import type { Product } from '../../domain/types.ts'
-import { useAuth } from '../auth/auth-context.ts'
+import { useHushall } from '../../hooks/useHushall.ts'
 import { sokProdukter } from '../../services/catalog.ts'
 import {
   bytProduktPaPost,
@@ -36,7 +36,7 @@ export function ProduktValjare({
   onStang: () => void
   onSparad: () => void
 }) {
-  const { user } = useAuth()
+  const { hushallId } = useHushall()
   const ingredient = post.ingredient_id ? getIngredient(post.ingredient_id) : undefined
   const [fraga, setFraga] = useState(ingredient?.name ?? post.display_name)
   const [somFavorit, setSomFavorit] = useState(false)
@@ -54,7 +54,7 @@ export function ProduktValjare({
 
   const valj = useMutation({
     mutationFn: async (produkt: Product) => {
-      if (!user || !post.ingredient_id) throw new Error('Uppgifter saknas.')
+      if (!hushallId || !post.ingredient_id) throw new Error('Uppgifter saknas.')
 
       const behov = Number(post.required_amount ?? 0)
       const storlek = produkt.netContent?.value ?? 0
@@ -68,9 +68,9 @@ export function ProduktValjare({
 
       const pris = calculatePrice(produkt, antal, { at: new Date() })
 
-      await sparaProduktval(user.id, post.ingredient_id, storeNumber, produkt.gtin)
+      await sparaProduktval(hushallId, post.ingredient_id, storeNumber, produkt.gtin)
       if (somFavorit) {
-        await sparaFavoritprodukt(user.id, post.ingredient_id, storeNumber, produkt.gtin)
+        await sparaFavoritprodukt(hushallId, post.ingredient_id, storeNumber, produkt.gtin)
       }
       await bytProduktPaPost(post.id, produkt, antal, pris.total)
       await uppdateraSumma(post.shopping_list_id)

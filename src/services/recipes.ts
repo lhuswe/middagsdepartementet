@@ -11,6 +11,7 @@ import { SEED_RECIPES } from '../domain/seed-recipes.ts'
 import type { Recipe, RecipeUnit } from '../domain/types.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { RecipeIngredientRow, RecipeRow } from '../types/database.ts'
+import type { HouseholdId } from '../types/ids.ts'
 
 type RadMedIngredienser = RecipeRow & { recipe_ingredients: RecipeIngredientRow[] }
 
@@ -35,7 +36,7 @@ function toRecipe(row: RadMedIngredienser): Recipe {
   }
 }
 
-export async function hamtaRecept(householdId: string): Promise<Recipe[]> {
+export async function hamtaRecept(householdId: HouseholdId): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from('recipes')
     .select('*, recipe_ingredients(*)')
@@ -58,67 +59,93 @@ export async function hamtaRecept1(id: string): Promise<Recipe | null> {
 }
 
 /**
- * Lägger in startrecepten i användarens samling.
+ * Lägger in startrecepten i hushållets samling.
  *
- * Körs en gång, vid onboarding. Är samlingen redan fylld händer ingenting -
- * funktionen ska gå att anropa om utan att skapa dubbletter.
+ * Körs vid onboarding, men går att anropa om: recept som redan finns skapas
+ * inte igen, och recept som saknar sina ingrediensrader repareras.
+ *
+ * Reparationen finns av en anledning. Ingrediensraderna skrevs tidigare i ett
+ * enda anrop, så en enda trasig främmandenyckel gjorde att *inga* rader kom in.
+ * Recepten fanns men var tomma, och eftersom funktionen hoppade av direkt när
+ * samlingen inte var tom fanns ingen väg tillbaka. Ett recept utan ingredienser
+ * går inte att handla för, så det läget måste kunna läka.
  */
 export async function importeraStartrecept(
-  householdId: string,
+  householdId: HouseholdId,
   userId: string,
 ): Promise<number> {
-  const { count } = await supabase
+  const { data: befintliga, error: lasFel } = await supabase
     .from('recipes')
-    .select('id', { count: 'exact', head: true })
+    .select('id, name, recipe_ingredients(id)')
     .eq('household_id', householdId)
 
-  if ((count ?? 0) > 0) return 0
+  if (lasFel) throw lasFel
 
-  const { data: skapade, error } = await supabase
-    .from('recipes')
-    .insert(
-      SEED_RECIPES.map((recipe) => ({
-        household_id: householdId,
-        user_id: userId,
-        name: recipe.name,
-        description: recipe.description,
-        servings: recipe.servings,
-        prep_minutes: recipe.prepMinutes,
-        cook_minutes: recipe.cookMinutes,
-        instructions: recipe.instructions,
-        tags: recipe.tags,
-        source: 'Departementet för middagsfrågor',
-        is_seed: true,
-      })),
-    )
-    .select('id, name')
+  const rader = (befintliga ?? []) as { id: string; name: string; recipe_ingredients: unknown[] }[]
+  const idFörNamn = new Map(rader.map((rad) => [rad.name, rad.id]))
+  const utanIngredienser = new Set(
+    rader.filter((rad) => (rad.recipe_ingredients ?? []).length === 0).map((rad) => rad.name),
+  )
 
-  if (error) throw error
+  const saknas = SEED_RECIPES.filter((recipe) => !idFörNamn.has(recipe.name))
+
+  if (saknas.length > 0) {
+    const { data: skapade, error } = await supabase
+      .from('recipes')
+      .insert(
+        saknas.map((recipe) => ({
+          household_id: householdId,
+          user_id: userId,
+          name: recipe.name,
+          description: recipe.description,
+          servings: recipe.servings,
+          prep_minutes: recipe.prepMinutes,
+          cook_minutes: recipe.cookMinutes,
+          instructions: recipe.instructions,
+          tags: recipe.tags,
+          source: 'Departementet för middagsfrågor',
+          is_seed: true,
+        })),
+      )
+      .select('id, name')
+
+    if (error) throw error
+
+    for (const skapad of skapade ?? []) {
+      idFörNamn.set(skapad.name, skapad.id)
+      utanIngredienser.add(skapad.name)
+    }
+  }
 
   // Koppla ingredienserna. Namnet är nyckeln tillbaka till källreceptet,
   // eftersom databasen genererar egna id:n.
-  const idFörNamn = new Map((skapade ?? []).map((row) => [row.name, row.id]))
-  const rader = SEED_RECIPES.flatMap((recipe) => {
-    const recipeId = idFörNamn.get(recipe.name)
-    if (!recipeId) return []
-    return recipe.ingredients.map((item, index) => ({
-      recipe_id: recipeId,
-      ingredient_id: item.ingredientId,
-      quantity: item.quantity.value,
-      unit: item.quantity.unit,
-      optional: item.optional,
-      sort_order: index,
-    }))
-  })
+  const ingrediensrader = SEED_RECIPES.filter((recipe) => utanIngredienser.has(recipe.name)).flatMap(
+    (recipe) => {
+      const recipeId = idFörNamn.get(recipe.name)
+      if (!recipeId) return []
+      return recipe.ingredients.map((item, index) => ({
+        recipe_id: recipeId,
+        ingredient_id: item.ingredientId,
+        quantity: item.quantity.value,
+        unit: item.quantity.unit,
+        optional: item.optional,
+        sort_order: index,
+      }))
+    },
+  )
 
-  const { error: ingrediensFel } = await supabase.from('recipe_ingredients').insert(rader)
-  if (ingrediensFel) throw ingrediensFel
+  if (ingrediensrader.length > 0) {
+    const { error: ingrediensFel } = await supabase
+      .from('recipe_ingredients')
+      .insert(ingrediensrader)
+    if (ingrediensFel) throw ingrediensFel
+  }
 
-  return skapade?.length ?? 0
+  return saknas.length
 }
 
 export async function markeraLagad(
-  householdId: string,
+  householdId: HouseholdId,
   userId: string,
   recipeId: string,
   servings: number,
@@ -136,7 +163,7 @@ export interface Lagningshistorik {
 }
 
 /** Vad som lagats den senaste tiden, för planerarens repetitionsspärr. */
-export async function hamtaLagningshistorik(householdId: string): Promise<Lagningshistorik[]> {
+export async function hamtaLagningshistorik(householdId: HouseholdId): Promise<Lagningshistorik[]> {
   const { data, error } = await supabase
     .from('cooking_history')
     .select('recipe_id, cooked_on')
@@ -163,7 +190,7 @@ export async function hamtaLagningshistorik(householdId: string): Promise<Lagnin
 }
 
 export async function vaxlaFavorit(
-  householdId: string,
+  householdId: HouseholdId,
   userId: string,
   recipeId: string,
   favorit: boolean,
@@ -183,7 +210,7 @@ export async function vaxlaFavorit(
   }
 }
 
-export async function hamtaFavoriter(householdId: string): Promise<Set<string>> {
+export async function hamtaFavoriter(householdId: HouseholdId): Promise<Set<string>> {
   const { data, error } = await supabase
     .from('favorite_recipes')
     .select('recipe_id')

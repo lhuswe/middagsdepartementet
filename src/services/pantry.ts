@@ -15,8 +15,9 @@ import { toBase } from '../domain/units.ts'
 import type { RecipeUnit } from '../domain/types.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { PantryItemRow } from '../types/database.ts'
+import type { HouseholdId } from '../types/ids.ts'
 
-export async function hamtaSkafferi(householdId: string): Promise<PantryItemRow[]> {
+export async function hamtaSkafferi(householdId: HouseholdId): Promise<PantryItemRow[]> {
   const { data, error } = await supabase
     .from('pantry_items')
     .select('*')
@@ -37,7 +38,7 @@ export function tillPantryEntries(rader: PantryItemRow[]): PantryEntry[] {
  * kanonisk enhet - annars skulle "3 dl ris" och "250 g ris" inte gå att jämföra.
  */
 export async function sparaSkafferipost(
-  householdId: string,
+  householdId: HouseholdId,
   ingredientId: string,
   varde: number,
   enhet: RecipeUnit,
@@ -68,7 +69,7 @@ export async function sparaSkafferipost(
   if (error) throw error
 }
 
-export async function taBortSkafferipost(householdId: string, ingredientId: string): Promise<void> {
+export async function taBortSkafferipost(householdId: HouseholdId, ingredientId: string): Promise<void> {
   const { error } = await supabase
     .from('pantry_items')
     .delete()

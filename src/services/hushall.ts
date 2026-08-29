@@ -15,6 +15,7 @@
 
 import { supabase } from '../lib/supabase.ts'
 import type { HouseholdInviteRow, HouseholdMemberRow, HouseholdRow, ProfileRow } from '../types/database.ts'
+import { somHouseholdId, type HouseholdId } from '../types/ids.ts'
 
 export interface Medlem {
   userId: string
@@ -32,7 +33,7 @@ export async function hamtaHushall(): Promise<HouseholdRow | null> {
 }
 
 export async function sparaHushall(
-  householdId: string,
+  householdId: HouseholdId,
   andringar: Partial<HouseholdRow>,
 ): Promise<HouseholdRow> {
   const { data, error } = await supabase
@@ -95,17 +96,17 @@ export async function hamtaHushallsallergier(): Promise<string[]> {
   return (data as string[] | null) ?? []
 }
 
-export async function skapaHushall(namn: string): Promise<string> {
+export async function skapaHushall(namn: string): Promise<HouseholdId> {
   const { data, error } = await supabase.rpc('skapa_hushall', { namn })
   if (error) throw error
-  return data as string
+  return somHouseholdId(data as string)
 }
 
 /** Löser in en inbjudningskod. Villkoren kontrolleras i databasen. */
-export async function losInInbjudan(kod: string): Promise<string> {
+export async function losInInbjudan(kod: string): Promise<HouseholdId> {
   const { data, error } = await supabase.rpc('los_in_inbjudan', { kod: kod.trim() })
   if (error) throw new Error(oversattHushallsfel(error.message))
-  return data as string
+  return somHouseholdId(data as string)
 }
 
 export async function hamtaInbjudningar(): Promise<HouseholdInviteRow[]> {
@@ -121,7 +122,7 @@ export async function hamtaInbjudningar(): Promise<HouseholdInviteRow[]> {
 }
 
 export async function skapaInbjudan(
-  householdId: string,
+  householdId: HouseholdId,
   userId: string,
 ): Promise<HouseholdInviteRow> {
   const { data, error } = await supabase

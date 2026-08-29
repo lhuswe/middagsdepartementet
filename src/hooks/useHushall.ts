@@ -15,6 +15,7 @@ import {
   sparaHushall,
 } from '../services/hushall.ts'
 import type { HouseholdRow } from '../types/database.ts'
+import { somHouseholdId, type HouseholdId } from '../types/ids.ts'
 
 /**
  * Hushållet den inloggade tillhör.
@@ -38,7 +39,8 @@ export function useHushall() {
   return {
     ...query,
     hushall,
-    hushallId: hushall?.id ?? null,
+    // Märkt typ: gör det till ett kompileringsfel att skicka `user.id` hit.
+    hushallId: hushall ? somHouseholdId(hushall.id) : null,
     portioner: portionerFor(hushall),
     butik: hushall?.store_number ?? null,
     saknarHushall: !query.isLoading && hushall === null,
@@ -51,7 +53,7 @@ export function useSparaHushall() {
   const klient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, andringar }: { id: string; andringar: Partial<HouseholdRow> }) =>
+    mutationFn: ({ id, andringar }: { id: HouseholdId; andringar: Partial<HouseholdRow> }) =>
       sparaHushall(id, andringar),
     onSuccess: (hushall) => {
       klient.setQueryData(['hushall', user?.id], hushall)
@@ -102,7 +104,7 @@ export function useInbjudningar() {
   return {
     ...query,
     skapa: useMutation({
-      mutationFn: ({ id, userId }: { id: string; userId: string }) => skapaInbjudan(id, userId),
+      mutationFn: ({ id, userId }: { id: HouseholdId; userId: string }) => skapaInbjudan(id, userId),
       onSuccess: uppdatera,
     }),
     aterkalla: useMutation({ mutationFn: aterkallaInbjudan, onSuccess: uppdatera }),
